@@ -139,6 +139,7 @@ namespace BikeVille.Controllers
 
             // Salvataggio in MongoDB
             await collection.InsertOneAsync(userCredentials);
+            Console.WriteLine("ChiccoBambino");
 
             return Ok(new { Message = "Customer created successfully" });
         }
