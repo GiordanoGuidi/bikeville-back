@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using BikeVille.Utilities;
 
+
 namespace BikeVille.Controllers
 {
     [Route("api/[controller]")]
@@ -88,7 +89,18 @@ namespace BikeVille.Controllers
         {
             if(!ModelState.IsValid)
                return BadRequest();
-            
+
+            // Recupera le credenziali dell'amministratore dalle variabili di ambiente
+            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+            string role = "Customer";
+            //Se l'email e la password dell'utente sono uguali a quelle dell'admin assegno il ruolo admin
+            if (createCustomerDto.EmailAddress == adminEmail && createCustomerDto.Password == adminPassword)
+            {
+                role = "Admin";
+            }
+
             // Verifica se l'email esiste già in MongoDB
             var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
             Console.WriteLine("Verifica email: " + createCustomerDto.EmailAddress);
@@ -107,11 +119,14 @@ namespace BikeVille.Controllers
 
             //Tupla con passwordhash e passwordsalt
             var result = PasswordHelper.HashPassword(createCustomerDto.Password);
+            //Modifico il titolo in base al genere dell'utente
             string title = createCustomerDto.Gender switch
             {
                 "Male" => "Mr.",
                 "Female"=>"Ms.",
+                "Other"=>"Other"
             };
+
 
             //Creo istanza Customer
             var customer = new Customer
@@ -140,6 +155,7 @@ namespace BikeVille.Controllers
                 EmailAddress = createCustomerDto.EmailAddress,
                 PasswordHash = result.passwordHash,
                 PasswordSalt = result.saltBase64,
+                Role = role,
             };
 
             // Salvataggio in MongoDB

@@ -7,6 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Nuova cartella1\**" />
+    <Compile Remove="Nuova cartella\**" />
+    <Content Remove="Nuova cartella1\**" />
+    <Content Remove="Nuova cartella\**" />
+    <EmbeddedResource Remove="Nuova cartella1\**" />
+    <EmbeddedResource Remove="Nuova cartella\**" />
+    <None Remove="Nuova cartella1\**" />
+    <None Remove="Nuova cartella\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="microsoft.entityframeworkcore.sqlserver" Version="8.0.10" />
