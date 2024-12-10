@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 using BikeVille.Models.PasswordUtils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-
+using BikeVille.Utilities;
 
 namespace BikeVille.Controllers
 {
@@ -116,11 +116,11 @@ namespace BikeVille.Controllers
             //Creo istanza Customer
             var customer = new Customer
             {
-                FirstName = createCustomerDto.FirstName,
-                LastName = createCustomerDto.LastName,
+                FirstName = StringHelper.CapitalizeFirstLetter(createCustomerDto.FirstName),
+                LastName = StringHelper.CapitalizeFirstLetter(createCustomerDto.LastName),
                 Phone = createCustomerDto.Phone,
                 Title = title,
-                CompanyName = createCustomerDto.CompanyName,
+                CompanyName = StringHelper.CapitalizeFirstLetter(createCustomerDto.CompanyName),
                 ModifiedDate = DateTime.UtcNow,
                 Rowguid = Guid.NewGuid(),
                 EmailAddress = "",
