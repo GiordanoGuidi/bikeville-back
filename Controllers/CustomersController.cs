@@ -11,7 +11,7 @@ using System.Security.Cryptography;
 using BikeVille.Models.PasswordUtils;
 using MongoDB.Bson;
 using MongoDB.Driver;
-
+using BikeVille.Utilities;
 
 namespace BikeVille.Controllers
 {
@@ -107,15 +107,20 @@ namespace BikeVille.Controllers
 
             //Tupla con passwordhash e passwordsalt
             var result = PasswordHelper.HashPassword(createCustomerDto.Password);
+            string title = createCustomerDto.Gender switch
+            {
+                "Male" => "Mr.",
+                "Female"=>"Ms.",
+            };
 
             //Creo istanza Customer
             var customer = new Customer
             {
-                FirstName = createCustomerDto.FirstName,
-                LastName = createCustomerDto.LastName,
+                FirstName = StringHelper.CapitalizeFirstLetter(createCustomerDto.FirstName),
+                LastName = StringHelper.CapitalizeFirstLetter(createCustomerDto.LastName),
                 Phone = createCustomerDto.Phone,
-                Title = createCustomerDto.Gender,
-                CompanyName = createCustomerDto.CompanyName,
+                Title = title,
+                CompanyName = StringHelper.CapitalizeFirstLetter(createCustomerDto.CompanyName),
                 ModifiedDate = DateTime.UtcNow,
                 Rowguid = Guid.NewGuid(),
                 EmailAddress = "",
