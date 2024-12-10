@@ -24,7 +24,6 @@
 
   <ItemGroup>
     <Folder Include="BULogic\" />
-    <Folder Include="Utilities\" />
   </ItemGroup>
 
 </Project>
