@@ -13,6 +13,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using BikeVille.Utilities;
 
+
 namespace BikeVille.Controllers
 {
     [Route("api/[controller]")]
@@ -131,6 +132,7 @@ namespace BikeVille.Controllers
             _context.Customers.Add(customer);
             // Genera il CustomerID automaticamente
             await _context.SaveChangesAsync();
+
 
             // Creazione dell'oggetto UserCredentials per MongoDB
             UserCredentials userCredentials = new UserCredentials
