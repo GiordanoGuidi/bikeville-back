@@ -140,6 +140,7 @@ namespace BikeVille.Controllers
                 EmailAddress = createCustomerDto.EmailAddress,
                 PasswordHash = result.passwordHash,
                 PasswordSalt = result.saltBase64,
+                Role = "Customer"
             };
 
             // Salvataggio in MongoDB
