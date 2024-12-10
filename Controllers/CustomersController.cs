@@ -36,6 +36,20 @@ namespace BikeVille.Controllers
             return await _context.Customers.ToListAsync();
         }
 
+        [HttpGet("/user/{email}")]
+        public async Task<ActionResult<bool>> GetCustomerByMail(string email)
+        {
+            //controlla l'esistenza della mail nel database
+            var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+            var existingUser = await collection.Find(u => u.EmailAddress == email).FirstOrDefaultAsync();
+            
+            if (existingUser == null)
+            {
+                return false;
+            }
+
+            return true;
+        }
         // GET: api/Customers/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(int id)
