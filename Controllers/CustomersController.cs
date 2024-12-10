@@ -107,6 +107,11 @@ namespace BikeVille.Controllers
 
             //Tupla con passwordhash e passwordsalt
             var result = PasswordHelper.HashPassword(createCustomerDto.Password);
+            string title = createCustomerDto.Gender switch
+            {
+                "Male" => "Mr.",
+                "Female"=>"Ms.",
+            };
 
             //Creo istanza Customer
             var customer = new Customer
@@ -114,7 +119,7 @@ namespace BikeVille.Controllers
                 FirstName = createCustomerDto.FirstName,
                 LastName = createCustomerDto.LastName,
                 Phone = createCustomerDto.Phone,
-                Title = createCustomerDto.Gender,
+                Title = title,
                 CompanyName = createCustomerDto.CompanyName,
                 ModifiedDate = DateTime.UtcNow,
                 Rowguid = Guid.NewGuid(),
