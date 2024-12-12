@@ -41,8 +41,23 @@ namespace BikeVille.Controllers
             return product;
         }
 
+<<<<<<< HEAD
         // PUT: api/Products1/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+=======
+        // GET: api/Products/Categories
+        [HttpGet("parent-categories")]
+        public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
+        {
+            var topCategories = await _context.ProductCategories
+                .Take(4) 
+                .ToListAsync();
+
+            return Ok(topCategories);
+        }
+
+        // PUT: api/Products1/5
+>>>>>>> handle-product-filter
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProduct(int id, Product product)
         {
@@ -73,7 +88,10 @@ namespace BikeVille.Controllers
         }
 
         // POST: api/Products1
+<<<<<<< HEAD
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+=======
+>>>>>>> handle-product-filter
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(Product product)
         {
