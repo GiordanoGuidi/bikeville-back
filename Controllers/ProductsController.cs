@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using BikeVille.Models;
 
@@ -41,8 +42,18 @@ namespace BikeVille.Controllers
             return product;
         }
 
+        // GET: api/Products/Categories
+        [HttpGet("parent-categories")]
+        public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
+        {
+            var topCategories = await _context.ProductCategories
+                .Take(4) 
+                .ToListAsync();
+
+            return Ok(topCategories);
+        }
+
         // PUT: api/Products1/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
         public async Task<IActionResult> PutProduct(int id, Product product)
         {
@@ -73,7 +84,6 @@ namespace BikeVille.Controllers
         }
 
         // POST: api/Products1
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(Product product)
         {
