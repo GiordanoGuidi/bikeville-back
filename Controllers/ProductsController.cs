@@ -7,9 +7,11 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using BikeVille.Models;
+using BikeVille.Models.DTO;
+using Microsoft.Data.SqlClient;
 
 namespace BikeVille.Controllers
-{
+{ 
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -53,9 +55,57 @@ namespace BikeVille.Controllers
             return Ok(topCategories);
         }
 
+        [HttpGet("categoryId/{categoryId}")]
+        public async Task<string> GetCategory(int categoryId)
+        {
+            var category = await _context.ProductCategories.FindAsync(categoryId);
+            if (category == null)
+            {
+                return "";
+            }
+
+            return category.Name;
+        }
+
+        [HttpGet("modelId/{modelId}")]
+        public async Task<string> GetModel(int modelId)
+        {
+            var model = await _context.ProductModels.FindAsync(modelId);
+            if (model == null)
+            {
+                return "";
+            }
+
+            return model.Name;
+        }
+
+        [HttpGet("category/{category}")]
+        public async Task<ActionResult<int>> GetCategoryId(string category)
+        {
+            var productCategory = await _context.ProductCategories.FirstOrDefaultAsync(pc => pc.Name == category);
+            if (productCategory == null)
+            {
+                return NotFound($"Categoria con nome '{category}' non trovata.");
+            }
+
+            return Ok(productCategory.ProductCategoryId);
+        }
+
+        [HttpGet("model/{model}")]
+        public async Task<ActionResult<int>> GetModelId(string model)
+        {
+            var productModel = await _context.ProductModels.FirstOrDefaultAsync(pc => pc.Name == model);
+            if (productModel == null)
+            {
+                return NotFound($"Categoria con nome '{model}' non trovata.");
+            }
+
+            return Ok(productModel.ProductModelId);
+        }
+
         // PUT: api/Products1/5
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(int id, Product product)
+        public async Task<IActionResult> PutProduct(int id, CreateProductDTO product)
         {
             if (id != product.ProductId)
             {
