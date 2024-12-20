@@ -9,6 +9,9 @@ using Microsoft.EntityFrameworkCore;
 using BikeVille.Models;
 using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
+using BikeVille.Models.Services;
+using BikeVille.Models.Services;
+using BikeVille.Models.Bike;
 
 namespace BikeVille.Controllers
 { 
@@ -17,10 +20,12 @@ namespace BikeVille.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly AdventureWorksLt2019Context _context;
+        private readonly FilterService _filterService;
 
-        public ProductsController(AdventureWorksLt2019Context context)
+        public ProductsController(AdventureWorksLt2019Context context, FilterService filterService)
         {
             _context = context;
+            _filterService = filterService;
         }
 
         // GET: api/Products1
@@ -101,6 +106,16 @@ namespace BikeVille.Controllers
             }
 
             return Ok(productModel.ProductModelId);
+        }
+
+        //Funzione per recuperare i filtri specifici della categoria (Bike)
+        [HttpGet("bike-filters")]
+        public async Task<ActionResult<BikeFilters>> GetFilters()
+        {
+            // Recuper entrambi i filtri
+            var bikeFilters = await _filterService.GetBikeFiltersAsync();
+
+            return Ok(bikeFilters);
         }
 
         // PUT: api/Products1/5
