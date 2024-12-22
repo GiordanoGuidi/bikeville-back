@@ -10,7 +10,6 @@ using BikeVille.Models;
 using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
 using BikeVille.Models.Services;
-using BikeVille.Models.Services;
 using BikeVille.Models.Bike;
 
 namespace BikeVille.Controllers
@@ -49,7 +48,62 @@ namespace BikeVille.Controllers
             return product;
         }
 
-        // GET: api/Products/Categories
+        //Funzione per recuperare i prodotti in base alla parent-categories
+        [HttpGet("by-parent-category")]
+        public async Task<ActionResult<Product>> GetProductByParentCategory(int id)
+        {
+            var products = await _context.Products
+                                                .Join(
+                                                    _context.ProductCategories,
+                                                    // Chiave primaria della tabella Products
+                                                    product => product.ProductCategoryId,
+                                                    // Chiave esterna della tabella ProductCategories
+                                                    category => category.ProductCategoryId,
+                                                    // Risultato della join
+                                                    (product, category) => new { Product = product, Category = category } 
+                                                )
+                                                // Filtro sul ParentProductCategoryId
+                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                // Seleziona solo i prodotti
+                                                .Select(joined => joined.Product) 
+                                                .ToListAsync();
+            return Ok(products);
+        }
+
+        //Funzione per filtrare le biciclette in base ai filtri selezionati
+        [HttpGet("get-filtered-bikes")]
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId)
+        {
+            Console.WriteLine($"color: {color}, parentCategoryId: {parentCategoryId},productCategory:{typeId}");
+            var query = _context.Products.Join(
+                _context.ProductCategories,
+                product => product.ProductCategoryId,
+                category => category.ProductCategoryId,
+                (product, category) => new { Product = product, Category = category }
+            )
+            .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId);
+
+            // Filtro per colore se presente
+            if (!string.IsNullOrWhiteSpace(color))
+            {
+                query = query.Where(joined => joined.Product.Color == color);
+            }
+
+            // Filtro per tipologia se presente
+            if (typeId != null)
+            {
+                query = query.Where(joined => joined.Product.ProductCategoryId == typeId);
+            }
+
+            var filteredProducts = await query
+                .Select(joined => joined.Product)
+                .ToListAsync();
+            Console.WriteLine (filteredProducts.Count);
+
+            return Ok(filteredProducts);
+        }
+
+        // Funzione per recuperare le Parent-categories
         [HttpGet("parent-categories")]
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
         {
