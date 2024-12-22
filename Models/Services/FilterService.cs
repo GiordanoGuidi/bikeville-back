@@ -28,10 +28,19 @@ namespace BikeVille.Models.Services
 
             //recupero i colori di biciclette
             var bikeColors = await _context.Products
-                                                .Where(p => p.Color != null)
-                                                .Select(p => p.Color)
-                                                .Distinct()
-                                                .ToListAsync();
+                                               .Join(
+                                                    _context.ProductCategories,
+                                                    product => product.ProductCategoryId,
+                                                    category => category.ProductCategoryId,
+                                                    (product, category) => new { Product = product, Category = category }
+                                                )
+                                                // Filtro per categoria biciclette
+                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                // Seleziono solo i colori
+                                                .Select(joined => joined.Product.Color) 
+                                                .Where(color => color != null) 
+                                                .Distinct() 
+        .ToListAsync();
 
             // Creo i filtri dei colori in una lista di oggetti BikeColorFilter
             var colorFilters = bikeColors.Select(color => new BikeColorFilter
