@@ -72,7 +72,7 @@ namespace BikeVille.Controllers
 
         //Funzione per filtrare le biciclette in base ai filtri selezionati
         [HttpGet("get-filtered-bikes")]
-        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId)
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size)
         {
             Console.WriteLine($"color: {color}, parentCategoryId: {parentCategoryId},productCategory:{typeId}");
             var query = _context.Products.Join(
@@ -94,6 +94,11 @@ namespace BikeVille.Controllers
             {
                 query = query.Where(joined => joined.Product.ProductCategoryId == typeId);
             }
+            // Filtro per taglia se presente
+            if (size != null)
+            {
+                query = query.Where(joined => joined.Product.Size == size);
+            }
 
             var filteredProducts = await query
                 .Select(joined => joined.Product)
@@ -112,6 +117,16 @@ namespace BikeVille.Controllers
                 .ToListAsync();
 
             return Ok(topCategories);
+        }
+
+        //Funzione per recuperare i filtri specifici della categoria (Bike)
+        [HttpGet("bike-filters")]
+        public async Task<ActionResult<BikeFilters>> GetFilters()
+        {
+            // Recupero i filtri
+            var bikeFilters = await _filterService.GetBikeFiltersAsync();
+
+            return Ok(bikeFilters);
         }
 
         [HttpGet("categoryId/{categoryId}")]
@@ -162,15 +177,7 @@ namespace BikeVille.Controllers
             return Ok(productModel.ProductModelId);
         }
 
-        //Funzione per recuperare i filtri specifici della categoria (Bike)
-        [HttpGet("bike-filters")]
-        public async Task<ActionResult<BikeFilters>> GetFilters()
-        {
-            // Recuper entrambi i filtri
-            var bikeFilters = await _filterService.GetBikeFiltersAsync();
-
-            return Ok(bikeFilters);
-        }
+        
 
         // PUT: api/Products1/5
         [HttpPut("{id}")]
