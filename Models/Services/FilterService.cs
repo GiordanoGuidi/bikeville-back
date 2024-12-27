@@ -40,12 +40,33 @@ namespace BikeVille.Models.Services
                                                 .Select(joined => joined.Product.Color) 
                                                 .Where(color => color != null) 
                                                 .Distinct() 
-        .ToListAsync();
+                                                .ToListAsync();
+
+            //Recupero le taglie delle biciclette
+            var bikeSizes = await _context.Products
+                                                  .Join(
+                                                    _context.ProductCategories,
+                                                    product => product.ProductCategoryId,
+                                                    category => category.ProductCategoryId,
+                                                    (product, category) => new { Product = product, Category = category }
+                                                  )
+                                                // Filtro per categoria biciclette
+                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                .Select(joined => joined.Product.Size)
+                                                .Where(size => size != null)
+                                                .Distinct()
+                                                .ToListAsync();
 
             // Creo i filtri dei colori in una lista di oggetti BikeColorFilter
             var colorFilters = bikeColors.Select(color => new BikeColorFilter
             {
                 Color = color
+            }).ToList();
+
+            // Creo i filtri delle taglie in una lista di oggetti BikeSizeFilter
+            var sizeFilters = bikeSizes.Select(size=>new BikeSizeFilter
+            {
+                Size= size
             }).ToList();
 
             //Creo e popolo e restituisco l'oggetto BikeFilters
@@ -54,6 +75,7 @@ namespace BikeVille.Models.Services
                 //Aggiunto i tipi di biciclette
                 BikeTypes = bikeTypes,
                 BikeColors = colorFilters,
+                BikeSizes = sizeFilters,
             };
 
            
