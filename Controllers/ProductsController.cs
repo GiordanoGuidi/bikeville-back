@@ -72,9 +72,8 @@ namespace BikeVille.Controllers
 
         //Funzione per filtrare le biciclette in base ai filtri selezionati
         [HttpGet("get-filtered-bikes")]
-        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size)
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size,[FromQuery]int?price)
         {
-            Console.WriteLine($"color: {color}, parentCategoryId: {parentCategoryId},productCategory:{typeId}");
             var query = _context.Products.Join(
                 _context.ProductCategories,
                 product => product.ProductCategoryId,
@@ -98,6 +97,31 @@ namespace BikeVille.Controllers
             if (size != null)
             {
                 query = query.Where(joined => joined.Product.Size == size);
+            }
+            if (price != null)
+            {
+                switch (price)
+                {
+                    case 1:
+                        price = 700;
+                        query = query.Where(joined=> joined.Product.ListPrice <= price);
+                        break;
+                    case 2:
+                        price = 700;
+                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1500);
+                        break;
+                    case 3:
+                        price = 1500;
+                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 2500);
+                        break;
+                    case 4:
+                        query = query.Where(joined => joined.Product.ListPrice >= 2500);
+                        break;
+
+                    default:
+                        Console.WriteLine("Scelta non valida.");
+                        break;
+                }
             }
 
             var filteredProducts = await query
