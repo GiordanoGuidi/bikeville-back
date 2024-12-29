@@ -77,8 +77,6 @@ namespace BikeVille.Models.Services
                 BikeColors = colorFilters,
                 BikeSizes = sizeFilters,
             };
-
-           
         }
     }
 }

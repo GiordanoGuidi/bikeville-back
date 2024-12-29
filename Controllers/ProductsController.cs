@@ -127,8 +127,6 @@ namespace BikeVille.Controllers
             var filteredProducts = await query
                 .Select(joined => joined.Product)
                 .ToListAsync();
-            Console.WriteLine (filteredProducts.Count);
-
             return Ok(filteredProducts);
         }
 
