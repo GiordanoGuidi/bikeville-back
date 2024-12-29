@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using BikeVille.Models;
 using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
+using BikeVille.Models.Services;
+using BikeVille.Models.Bike;
 
 namespace BikeVille.Controllers
 { 
@@ -17,10 +19,12 @@ namespace BikeVille.Controllers
     public class ProductsController : ControllerBase
     {
         private readonly AdventureWorksLt2019Context _context;
+        private readonly FilterService _filterService;
 
-        public ProductsController(AdventureWorksLt2019Context context)
+        public ProductsController(AdventureWorksLt2019Context context, FilterService filterService)
         {
             _context = context;
+            _filterService = filterService;
         }
 
         // GET: api/Products1
@@ -44,7 +48,89 @@ namespace BikeVille.Controllers
             return product;
         }
 
-        // GET: api/Products/Categories
+        //Funzione per recuperare i prodotti in base alla parent-categories
+        [HttpGet("by-parent-category")]
+        public async Task<ActionResult<Product>> GetProductByParentCategory(int id)
+        {
+            var products = await _context.Products
+                                                .Join(
+                                                    _context.ProductCategories,
+                                                    // Chiave primaria della tabella Products
+                                                    product => product.ProductCategoryId,
+                                                    // Chiave esterna della tabella ProductCategories
+                                                    category => category.ProductCategoryId,
+                                                    // Risultato della join
+                                                    (product, category) => new { Product = product, Category = category } 
+                                                )
+                                                // Filtro sul ParentProductCategoryId
+                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                // Seleziona solo i prodotti
+                                                .Select(joined => joined.Product) 
+                                                .ToListAsync();
+            return Ok(products);
+        }
+
+        //Funzione per filtrare le biciclette in base ai filtri selezionati
+        [HttpGet("get-filtered-bikes")]
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size,[FromQuery]int?price)
+        {
+            var query = _context.Products.Join(
+                _context.ProductCategories,
+                product => product.ProductCategoryId,
+                category => category.ProductCategoryId,
+                (product, category) => new { Product = product, Category = category }
+            )
+            .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId);
+
+            // Filtro per colore se presente
+            if (!string.IsNullOrWhiteSpace(color))
+            {
+                query = query.Where(joined => joined.Product.Color == color);
+            }
+
+            // Filtro per tipologia se presente
+            if (typeId != null)
+            {
+                query = query.Where(joined => joined.Product.ProductCategoryId == typeId);
+            }
+            // Filtro per taglia se presente
+            if (size != null)
+            {
+                query = query.Where(joined => joined.Product.Size == size);
+            }
+            if (price != null)
+            {
+                switch (price)
+                {
+                    case 1:
+                        price = 700;
+                        query = query.Where(joined=> joined.Product.ListPrice <= price);
+                        break;
+                    case 2:
+                        price = 700;
+                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1500);
+                        break;
+                    case 3:
+                        price = 1500;
+                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 2500);
+                        break;
+                    case 4:
+                        query = query.Where(joined => joined.Product.ListPrice >= 2500);
+                        break;
+
+                    default:
+                        Console.WriteLine("Scelta non valida.");
+                        break;
+                }
+            }
+
+            var filteredProducts = await query
+                .Select(joined => joined.Product)
+                .ToListAsync();
+            return Ok(filteredProducts);
+        }
+
+        // Funzione per recuperare le Parent-categories
         [HttpGet("parent-categories")]
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
         {
@@ -53,6 +139,16 @@ namespace BikeVille.Controllers
                 .ToListAsync();
 
             return Ok(topCategories);
+        }
+
+        //Funzione per recuperare i filtri specifici della categoria (Bike)
+        [HttpGet("bike-filters")]
+        public async Task<ActionResult<BikeFilters>> GetFilters()
+        {
+            // Recupero i filtri
+            var bikeFilters = await _filterService.GetBikeFiltersAsync();
+
+            return Ok(bikeFilters);
         }
 
         [HttpGet("categoryId/{categoryId}")]
@@ -102,6 +198,8 @@ namespace BikeVille.Controllers
 
             return Ok(productModel.ProductModelId);
         }
+
+        
 
         // PUT: api/Products1/5
         [HttpPut("{id}")]

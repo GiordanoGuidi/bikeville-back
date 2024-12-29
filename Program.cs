@@ -10,6 +10,7 @@ using System.Runtime.ConstrainedExecution;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using BikeVille.Models.Mongodb;
+using BikeVille.Models.Services;
 
 
 namespace BikeVille
@@ -25,6 +26,7 @@ namespace BikeVille
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.Services.AddScoped<FilterService>();
 
             //Aggiungo configurazione al database Sql
             builder.Services.AddDbContext<AdventureWorksLt2019Context>(opt => opt.UseSqlServer(
