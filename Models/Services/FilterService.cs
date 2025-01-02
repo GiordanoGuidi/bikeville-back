@@ -57,6 +57,15 @@ namespace BikeVille.Models.Services
                                                 .Distinct()
                                                 .ToListAsync();
 
+            // Fasce di prezzo preimpostate
+                var priceRanges = new List<BikePriceFilter>
+                {
+                    new BikePriceFilter { Id = 1, Label = "Up to 700€" },
+                    new BikePriceFilter { Id = 2, Label = "700-1500€" },
+                    new BikePriceFilter { Id = 3, Label = "1500-2500€" },
+                    new BikePriceFilter { Id = 4, Label = "2500€ and more" }
+                };
+
             // Creo i filtri dei colori in una lista di oggetti BikeColorFilter
             var colorFilters = bikeColors.Select(color => new BikeColorFilter
             {
@@ -76,6 +85,7 @@ namespace BikeVille.Models.Services
                 BikeTypes = bikeTypes,
                 BikeColors = colorFilters,
                 BikeSizes = sizeFilters,
+                BikePrices= priceRanges,
             };
         }
     }
