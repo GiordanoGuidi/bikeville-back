@@ -50,7 +50,7 @@ namespace BikeVille.Controllers
 
         //Funzione per recuperare i prodotti in base alla parent-categories
         [HttpGet("by-parent-category")]
-        public async Task<ActionResult<Product>> GetProductByParentCategory(int id)
+        public async Task<ActionResult<Product>> GetProductByParentCategory(int parentCategoryId)
         {
             var products = await _context.Products
                                                 .Join(
@@ -63,7 +63,7 @@ namespace BikeVille.Controllers
                                                     (product, category) => new { Product = product, Category = category } 
                                                 )
                                                 // Filtro sul ParentProductCategoryId
-                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId)
                                                 // Seleziona solo i prodotti
                                                 .Select(joined => joined.Product) 
                                                 .ToListAsync();
@@ -131,6 +131,7 @@ namespace BikeVille.Controllers
             return Ok(filteredProducts);
         }
 
+
         // Funzione per recuperare le Parent-categories
         [HttpGet("parent-categories")]
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
@@ -144,12 +145,12 @@ namespace BikeVille.Controllers
 
         //Funzione per recuperare i filtri specifici della categoria (Bike)
         [HttpGet("bike-filters")]
-        public async Task<ActionResult<BikeFilters>> GetFilters()
+        public async Task<ActionResult<Filters>> GetFilters(int parentCategoryId)
         {
             // Recupero i filtri
-            var bikeFilters = await _filterService.GetBikeFiltersAsync();
+            var filters = await _filterService.GetFiltersAsync(parentCategoryId);
 
-            return Ok(bikeFilters);
+            return Ok(filters);
         }
 
         [HttpGet("categoryId/{categoryId}")]
