@@ -8,6 +8,8 @@ namespace BikeVille.Models.Bike
         public IEnumerable<BikeTypeFilter> BikeTypes { get; set; }
         public IEnumerable<BikeColorFilter> BikeColors { get; set; }
         public IEnumerable<BikeSizeFilter> BikeSizes { get; set; }
+        public IEnumerable<BikePriceFilter> BikePrices { get; set; }
+
 
     }
 }

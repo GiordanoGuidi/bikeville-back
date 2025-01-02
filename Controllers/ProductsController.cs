@@ -98,6 +98,7 @@ namespace BikeVille.Controllers
             {
                 query = query.Where(joined => joined.Product.Size == size);
             }
+            // Filtro per prezzo se presente
             if (price != null)
             {
                 switch (price)
