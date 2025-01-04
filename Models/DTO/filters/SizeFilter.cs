@@ -1,6 +1,6 @@
 ﻿namespace BikeVille.Models.DTO.bike
 {
-    public class BikeSizeFilter
+    public class SizeFilter
     {
         public string Size { get; set; }
     }

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using BikeVille.Models.DTO.bike;
-using BikeVille.Models.Bike;
+using BikeVille.Models.DTO.filters;
 
 namespace BikeVille.Models.Services
 {
@@ -14,12 +14,12 @@ namespace BikeVille.Models.Services
         }
 
         // Metodo per recuperare i tipi di biciclette
-        public async Task<BikeFilters> GetBikeFiltersAsync()
+        public async Task<Filters> GetFiltersAsync(int parentCategoryId)
         {
             //recupero i tipi di biciclette
-            var bikeTypes = await _context.ProductCategories
-                                              .Where(pc => pc.ParentProductCategoryId == 1)
-                                              .Select(pc => new BikeTypeFilter
+            var types = await _context.ProductCategories
+                                              .Where(pc => pc.ParentProductCategoryId == parentCategoryId)
+                                              .Select(pc => new TypeFilter
                                               {
                                                   Id = pc.ProductCategoryId,
                                                   Name = pc.Name
@@ -27,7 +27,7 @@ namespace BikeVille.Models.Services
                                               .ToListAsync();
 
             //recupero i colori di biciclette
-            var bikeColors = await _context.Products
+            var colors = await _context.Products
                                                .Join(
                                                     _context.ProductCategories,
                                                     product => product.ProductCategoryId,
@@ -35,7 +35,7 @@ namespace BikeVille.Models.Services
                                                     (product, category) => new { Product = product, Category = category }
                                                 )
                                                 // Filtro per categoria biciclette
-                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId)
                                                 // Seleziono solo i colori
                                                 .Select(joined => joined.Product.Color) 
                                                 .Where(color => color != null) 
@@ -43,7 +43,7 @@ namespace BikeVille.Models.Services
                                                 .ToListAsync();
 
             //Recupero le taglie delle biciclette
-            var bikeSizes = await _context.Products
+            var sizes = await _context.Products
                                                   .Join(
                                                     _context.ProductCategories,
                                                     product => product.ProductCategoryId,
@@ -51,31 +51,71 @@ namespace BikeVille.Models.Services
                                                     (product, category) => new { Product = product, Category = category }
                                                   )
                                                 // Filtro per categoria biciclette
-                                                .Where(joined => joined.Category.ParentProductCategoryId == 1)
+                                                .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId)
                                                 .Select(joined => joined.Product.Size)
                                                 .Where(size => size != null)
                                                 .Distinct()
                                                 .ToListAsync();
+            // Configuro fasce di prezzo in base alla categoria
+            var priceRanges = GetPriceRangesByCategory(parentCategoryId);
 
             // Creo i filtri dei colori in una lista di oggetti BikeColorFilter
-            var colorFilters = bikeColors.Select(color => new BikeColorFilter
+            var colorFilters = colors.Select(color => new ColorFilter
             {
                 Color = color
             }).ToList();
 
             // Creo i filtri delle taglie in una lista di oggetti BikeSizeFilter
-            var sizeFilters = bikeSizes.Select(size=>new BikeSizeFilter
+            var sizeFilters = sizes.Select(size=>new SizeFilter
             {
                 Size= size
             }).ToList();
 
             //Creo e popolo e restituisco l'oggetto BikeFilters
-            return new BikeFilters
+            return new Filters
             {
                 //Aggiunto i tipi di biciclette
-                BikeTypes = bikeTypes,
-                BikeColors = colorFilters,
-                BikeSizes = sizeFilters,
+                Types = types,
+                Colors = colorFilters,
+                Sizes = sizeFilters,
+                Prices= priceRanges,
+            };
+        }
+
+
+        // Metodo per configurare le fasce di prezzo in base alla categoria
+        private List<PriceFilter> GetPriceRangesByCategory(int categoryId)
+        {
+            return categoryId switch
+            {
+                1 => new List<PriceFilter>
+            {
+                new PriceFilter { Id = 1, Label = "Up to 700€" },
+                new PriceFilter { Id = 2, Label = "700-1500€" },
+                new PriceFilter { Id = 3, Label = "1500-2500€" },
+                new PriceFilter { Id = 4, Label = "2500€ and more" }
+            },
+                2 => new List<PriceFilter>
+            {
+                new PriceFilter { Id = 1, Label = "Up to 100€" },
+                new PriceFilter { Id = 2, Label = "100-500€" },
+                new PriceFilter { Id = 3, Label = "500-1000€" },
+                new PriceFilter { Id = 4, Label = "1000€ and more" }
+            },
+                3 => new List<PriceFilter>
+            {
+                new PriceFilter { Id = 1, Label = "Up to 10€" },
+                new PriceFilter { Id = 2, Label = "10-30€" },
+                new PriceFilter { Id = 3, Label = "30-50€" },
+                new PriceFilter { Id = 4, Label = "50€ and more" }
+            },
+                4 => new List<PriceFilter>
+            {
+                 new PriceFilter { Id = 1, Label = "Up to 10€" },
+                new PriceFilter { Id = 2, Label = "10-30€" },
+                new PriceFilter { Id = 3, Label = "30-50€" },
+                new PriceFilter { Id = 4, Label = "50€ and more" }
+            },
             };
         }
     }
