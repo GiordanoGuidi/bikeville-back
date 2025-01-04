@@ -10,10 +10,10 @@ using BikeVille.Models;
 using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
 using BikeVille.Models.Services;
-using BikeVille.Models.Bike;
+using BikeVille.Models.DTO.filters;
 
 namespace BikeVille.Controllers
-{ 
+{
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
@@ -101,27 +101,59 @@ namespace BikeVille.Controllers
             // Filtro per prezzo se presente
             if (price != null)
             {
-                switch (price)
+                switch (parentCategoryId)
                 {
+                    //Biciclette
                     case 1:
-                        price = 700;
-                        query = query.Where(joined=> joined.Product.ListPrice <= price);
+                        switch (price)
+                        {
+                            case 1:
+                                price = 700;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 700;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1500);
+                                break;
+                            case 3:
+                                price = 1500;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 2500);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 2500);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
                         break;
+                    //Componenti biciclette
                     case 2:
-                        price = 700;
-                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1500);
-                        break;
-                    case 3:
-                        price = 1500;
-                        query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 2500);
-                        break;
-                    case 4:
-                        query = query.Where(joined => joined.Product.ListPrice >= 2500);
+                        switch (price)
+                        {
+                            case 1:
+                                price = 100;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 100;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 500);
+                                break;
+                            case 3:
+                                price = 500;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1000);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 1000);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
                         break;
 
-                    default:
-                        Console.WriteLine("Scelta non valida.");
-                        break;
                 }
             }
 
@@ -144,7 +176,7 @@ namespace BikeVille.Controllers
         }
 
         //Funzione per recuperare i filtri specifici della categoria (Bike)
-        [HttpGet("bike-filters")]
+        [HttpGet("product-filters")]
         public async Task<ActionResult<Filters>> GetFilters(int parentCategoryId)
         {
             // Recupero i filtri

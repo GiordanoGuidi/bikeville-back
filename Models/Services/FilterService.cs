@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using BikeVille.Models.DTO.bike;
-using BikeVille.Models.Bike;
+using BikeVille.Models.DTO.filters;
 
 namespace BikeVille.Models.Services
 {

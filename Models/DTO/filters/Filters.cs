@@ -1,6 +1,6 @@
 ﻿using BikeVille.Models.DTO.bike;
 
-namespace BikeVille.Models.Bike
+namespace BikeVille.Models.DTO.filters
 {
     public class Filters
     {
@@ -9,7 +9,5 @@ namespace BikeVille.Models.Bike
         public IEnumerable<ColorFilter> Colors { get; set; }
         public IEnumerable<SizeFilter> Sizes { get; set; }
         public IEnumerable<PriceFilter> Prices { get; set; }
-
-
     }
 }
