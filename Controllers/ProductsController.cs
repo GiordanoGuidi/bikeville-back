@@ -128,7 +128,7 @@ namespace BikeVille.Controllers
                                 break;
                         }
                         break;
-                    //Componenti biciclette
+                    //Componenti 
                     case 2:
                         switch (price)
                         {
@@ -146,6 +146,56 @@ namespace BikeVille.Controllers
                                 break;
                             case 4:
                                 query = query.Where(joined => joined.Product.ListPrice >= 1000);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+                    //Vestiti
+                    case 3:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 30);
+                                break;
+                            case 3:
+                                price = 30;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 50);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 50);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+                    //Accessori
+                    case 4:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 30);
+                                break;
+                            case 3:
+                                price = 30;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 50);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 50);
                                 break;
 
                             default:
