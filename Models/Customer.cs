@@ -6,6 +6,8 @@ namespace BikeVille.Models;
 /// <summary>
 /// Customer information.
 /// </summary>
+// PROVAA3
+
 public partial class Customer
 {
     /// <summary>
