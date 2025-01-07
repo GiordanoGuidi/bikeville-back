@@ -8,13 +8,9 @@
 
   <ItemGroup>
     <Compile Remove="Nuova cartella1\**" />
-    <Compile Remove="Nuova cartella\**" />
     <Content Remove="Nuova cartella1\**" />
-    <Content Remove="Nuova cartella\**" />
     <EmbeddedResource Remove="Nuova cartella1\**" />
-    <EmbeddedResource Remove="Nuova cartella\**" />
     <None Remove="Nuova cartella1\**" />
-    <None Remove="Nuova cartella\**" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,16 +1,12 @@
-
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using BikeVille.Models;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType; // aaa
-using System.Runtime.ConstrainedExecution;
+using BikeVille.Models.Mongodb;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
-using BikeVille.Models.Mongodb;
-
+using System.Text;
+using BikeVille.Services;
 
 namespace BikeVille
 {
@@ -18,7 +14,6 @@ namespace BikeVille
     {
         public static void Main(string[] args)
         {
-           
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -26,78 +21,71 @@ namespace BikeVille
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
-            //Aggiungo configurazione al database Sql
-            builder.Services.AddDbContext<AdventureWorksLt2019Context>(opt => opt.UseSqlServer(
-            builder.Configuration.GetConnectionString("MainSqlConnection")));
+            // Configurazione del database SQL con logging
+            builder.Services.AddDbContext<AdventureWorksLt2019Context>(options =>
+            {
+                options.UseSqlServer(builder.Configuration.GetConnectionString("MainSqlConnection"))
+                       .EnableSensitiveDataLogging() // Mostra i dettagli delle query
+                       .LogTo(Console.WriteLine, LogLevel.Information); // Log delle query in console
+            });
 
-            // Aggiungo la configurazione di MongoDbSettings
+            // Configurazione di MongoDB
             builder.Services.Configure<MongoDbSettings>(
-                //Popolo l'oggetto MongoDbSettings con il contenuto di MongodbSettings del file di configurazione json
                 builder.Configuration.GetSection("MongoDbSettings"));
 
-            // Aggiungo la connessione MongoDB
             builder.Services.AddSingleton<IMongoClient>(sp =>
             {
                 var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
-                //Creo MongoClient utilizzando la stringa di connessione
                 return new MongoClient(settings.ConnectionString);
             });
 
-            //Registro istanza IMongoDatabase nel contenitore DI
             builder.Services.AddSingleton<IMongoDatabase>(sp =>
             {
-                //Recupero impostazioni di configurazione
                 var settings = sp.GetRequiredService<IOptions<MongoDbSettings>>().Value;
                 var client = sp.GetRequiredService<IMongoClient>();
                 return client.GetDatabase(settings.DatabaseName);
             });
 
-            //Registro il servizio come DI
             builder.Services.AddSingleton<MongoPasswordService>();
 
-            //Cors Policy
+            // **Aggiungi DbManager**
+            builder.Services.AddSingleton<DbManager>(sp =>
+            {
+                // Recupera la stringa di connessione
+                string connectionString = builder.Configuration.GetConnectionString("MainSqlConnection");
+                return new DbManager(connectionString);
+            });
+
+            // **Aggiungi ErrorHandlingService**
+            builder.Services.AddScoped<ErrorHandlingService>();
+
+            // Cors Policy
             builder.Services.AddCors(opts =>
             {
                 opts.AddPolicy("CorsPolicy",
                     builder =>
                     builder.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader());
+                           .AllowAnyMethod()
+                           .AllowAnyHeader());
             });
 
-            //Create JwtSettings istances
+            // Configura autenticazione con JWT
             JwtSettings jwtSettings = new();
-            /*popolo l'oggetto jwtSettings con i valori presenti
-           nella sezione "JwtSettings" presente nell'appsettings,json*/
             builder.Configuration.GetSection("JwtSettings").Bind(jwtSettings);
-            //Aggiungo jwtSettings come singleton nei servizi
-            _ = builder.Services.AddSingleton(jwtSettings);
-            //Configurazione servizio autenticazione
+            builder.Services.AddSingleton(jwtSettings);
             builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-                //Configura jwt Bearer
                 .AddJwtBearer(opts =>
                 {
                     opts.TokenValidationParameters = new TokenValidationParameters
                     {
-                        /*Controlla che il token sia emesso da un issuer 
-                      * valido (emittente) specificato in ValidIssuer*/
                         ValidateIssuer = true,
-                        //Verifica che il token sia destinato al pubblico(audience)
-                        //corretto specificato in ValidAudience.
                         ValidateAudience = true,
-                        /*Controlla che il token non sia scaduto 
-                     * (data di scadenza inclusa nel token).*/
                         ValidateLifetime = true,
-                        /*Verifica che il token sia firmato 
-                     * correttamente con una chiave valida.*/
                         ValidateIssuerSigningKey = true,
                         ValidIssuer = jwtSettings.Issuer,
                         ValidAudience = jwtSettings.Audience,
-                        //Indica che il token deve avere una data di scadenza.
                         RequireExpirationTime = true,
-                        //Specifica la chiave usata per firmare e verificare il token.
-                        IssuerSigningKey =
-                        new SymmetricSecurityKey(
+                        IssuerSigningKey = new SymmetricSecurityKey(
                             Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
                     };
                 });
@@ -116,7 +104,6 @@ namespace BikeVille
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 
