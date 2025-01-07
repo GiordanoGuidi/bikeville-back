@@ -12,6 +12,9 @@ using BikeVille.Models.PasswordUtils;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using BikeVille.Utilities;
+using BikeVille.Utilities;
+using BikeVille.Exceptions;
+using BikeVille.Services;
 
 
 namespace BikeVille.Controllers
@@ -22,12 +25,14 @@ namespace BikeVille.Controllers
     {
         private readonly AdventureWorksLt2019Context _context;
         private readonly IMongoDatabase _mongoDatabase;
+        private readonly ErrorHandlingService _errorHandlingService;
 
         //Costruttore con DI 
-        public CustomersController(AdventureWorksLt2019Context context, IMongoDatabase mongoDatabase)
+        public CustomersController(AdventureWorksLt2019Context context, IMongoDatabase mongoDatabase, ErrorHandlingService errorHandlingService)
         {
             _context = context;
             _mongoDatabase = mongoDatabase;
+            _errorHandlingService = errorHandlingService;
         }
 
         // GET: api/Customers
@@ -43,7 +48,7 @@ namespace BikeVille.Controllers
             //controlla l'esistenza della mail nel database
             var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
             var existingUser = await collection.Find(u => u.EmailAddress == email).FirstOrDefaultAsync();
-            
+
             if (existingUser == null)
             {
                 return false;
@@ -51,20 +56,49 @@ namespace BikeVille.Controllers
 
             return true;
         }
+
         // GET: api/Customers/5
         [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<Customer>> GetCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-
-            if (customer == null)
+            try
             {
-                return NotFound();
+                // Trovo il cliente
+                var customer = await _context.Customers.FindAsync(id);
+
+                // Se il cliente non esiste, lancia un'eccezione personalizzata
+                if (customer == null)
+                {
+                    throw new GenericException($"Cliente con ID {id} non trovato.", 404);
+                }
+
+                // Restituisce il cliente
+                return Ok(customer);
             }
+            catch (GenericException ex)
+            {
+                // Registra l'errore nel database
+                await _errorHandlingService.LogErrorAsync(ex);
 
-            return customer;
+                // Restituisci un errore 404 con i dettagli
+                return NotFound(new
+                {
+                    Message = ex.Message,
+                    CustomerId = id
+                });
+            }
+            catch (Exception ex)
+            {
+                // Gestione generica degli errori
+                await _errorHandlingService.LogErrorAsync(ex);
+
+                // Restituisci un errore 500 per problemi inaspettati
+                return StatusCode(StatusCodes.Status500InternalServerError, "Errore durante il recupero del cliente.");
+            }
         }
-
 
         // PUT: api/Customers/5
         [HttpPut("{id}")]
@@ -99,83 +133,90 @@ namespace BikeVille.Controllers
         // POST: api/Customers
         [HttpPost]
         // Il parametro createCustomerDto sarà popolato con i dati inviati nel body della richiesta
-        public async Task<ActionResult> CreateCustomer ([FromBody] CreateCustomerDto createCustomerDto)
+        public async Task<ActionResult> CreateCustomer([FromBody] CreateCustomerDto createCustomerDto)
         {
-            if(!ModelState.IsValid)
-               return BadRequest();
+            if (!ModelState.IsValid)
+                return BadRequest();
 
-            // Recupera le credenziali dell'amministratore dalle variabili di ambiente
-            var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
-            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
-
-            string role = "Customer";
-            //Se l'email e la password dell'utente sono uguali a quelle dell'admin assegno il ruolo admin
-            if (createCustomerDto.EmailAddress == adminEmail && createCustomerDto.Password == adminPassword)
+            try
             {
-                role = "Admin";
+                // Recupera le credenziali dell'amministratore dalle variabili di ambiente
+                var adminEmail = Environment.GetEnvironmentVariable("ADMIN_EMAIL");
+                var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+
+                string role = "Customer";
+                //Se l'email e la password dell'utente sono uguali a quelle dell'admin assegno il ruolo admin
+                if (createCustomerDto.EmailAddress == adminEmail && createCustomerDto.Password == adminPassword)
+                {
+                    role = "Admin";
+                }
+
+                // Verifica se l'email esiste già in MongoDB
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                var existingUserInMongo = await collection.Find(u => u.EmailAddress == createCustomerDto.EmailAddress).FirstOrDefaultAsync();
+
+                if (existingUserInMongo != null)
+                {
+                    throw new GenericException("Email già in uso non può essere registrata.", 409);
+                }
+
+                // Tupla con password hash e salt
+                var result = PasswordHelper.HashPassword(createCustomerDto.Password);
+
+                // Modifico il titolo in base al genere dell'utente
+                string title = createCustomerDto.Gender switch
+                {
+                    "Male" => "Mr.",
+                    "Female" => "Ms.",
+                    "Other" => "Other",
+                    _ => "Mx."
+                };
+
+                // Creo istanza Customer
+                var customer = new Customer
+                {
+                    FirstName = StringHelper.CapitalizeFirstLetter(createCustomerDto.FirstName),
+                    LastName = StringHelper.CapitalizeFirstLetter(createCustomerDto.LastName),
+                    Phone = createCustomerDto.Phone,
+                    Title = title,
+                    CompanyName = StringHelper.CapitalizeFirstLetter(createCustomerDto.CompanyName),
+                    ModifiedDate = DateTime.UtcNow,
+                    Rowguid = Guid.NewGuid(),
+                    EmailAddress = createCustomerDto.EmailAddress,
+                    PasswordHash = result.passwordHash,
+                    PasswordSalt = result.saltBase64,
+                };
+
+                // Salvataggio in SQL Server
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+
+                // Creazione dell'oggetto UserCredentials per MongoDB
+                UserCredentials userCredentials = new UserCredentials
+                {
+                    Id = ObjectId.GenerateNewId(),
+                    CustomerID = customer.CustomerId,
+                    EmailAddress = createCustomerDto.EmailAddress,
+                    PasswordHash = result.passwordHash,
+                    PasswordSalt = result.saltBase64,
+                    Role = role,
+                };
+
+                // Salvataggio in MongoDB
+                await collection.InsertOneAsync(userCredentials);
+
+                return Ok(new { Message = "Customer created successfully" });
             }
-
-            // Verifica se l'email esiste già in MongoDB
-            var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
-            Console.WriteLine("Verifica email: " + createCustomerDto.EmailAddress);
-            var existingUser = await collection.Find(u => u.EmailAddress == createCustomerDto.EmailAddress).FirstOrDefaultAsync();
-
-            if (existingUser != null)
+            catch (GenericException ex)
             {
-                Console.WriteLine("Email già esistente: " + existingUser.EmailAddress);
-                Console.WriteLine("Utente:" + existingUser.ToString);
-                return Conflict(new { Message = "Email address already exists in the system." });
+                await _errorHandlingService.LogErrorAsync(ex);
+                return Conflict(new { Message = ex.Message });
             }
-            else
+            catch (Exception ex)
             {
-                Console.WriteLine("Nessuna email trovata nel database.");
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during customer creation.");
             }
-
-            //Tupla con passwordhash e passwordsalt
-            var result = PasswordHelper.HashPassword(createCustomerDto.Password);
-            //Modifico il titolo in base al genere dell'utente
-            string title = createCustomerDto.Gender switch
-            {
-                "Male" => "Mr.",
-                "Female"=>"Ms.",
-                "Other"=>"Other"
-            };
-
-
-            //Creo istanza Customer
-            var customer = new Customer
-            {
-                FirstName = StringHelper.CapitalizeFirstLetter(createCustomerDto.FirstName),
-                LastName = StringHelper.CapitalizeFirstLetter(createCustomerDto.LastName),
-                Phone = createCustomerDto.Phone,
-                Title = title,
-                CompanyName = StringHelper.CapitalizeFirstLetter(createCustomerDto.CompanyName),
-                ModifiedDate = DateTime.UtcNow,
-                Rowguid = Guid.NewGuid(),
-                EmailAddress = "",
-                PasswordHash = "",
-                PasswordSalt = "",
-            };
-            // Salvataggio in SQL Server
-            _context.Customers.Add(customer);
-            // Genera il CustomerID automaticamente
-            await _context.SaveChangesAsync();
-
-            // Creazione dell'oggetto UserCredentials per MongoDB
-            UserCredentials userCredentials = new UserCredentials
-            {
-                Id = ObjectId.GenerateNewId(),
-                CustomerID = customer.CustomerId,
-                EmailAddress = createCustomerDto.EmailAddress,
-                PasswordHash = result.passwordHash,
-                PasswordSalt = result.saltBase64,
-                Role = role,
-            };
-
-            // Salvataggio in MongoDB
-            await collection.InsertOneAsync(userCredentials);
-
-            return Ok(new { Message = "Customer created successfully" });
         }
 
         // DELETE: api/Customers/5
