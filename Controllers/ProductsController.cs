@@ -11,6 +11,8 @@ using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
 using BikeVille.Models.Services;
 using BikeVille.Models.DTO.filters;
+using BikeVille.Exceptions;
+using BikeVille.Services;
 
 namespace BikeVille.Controllers
 {
@@ -20,11 +22,13 @@ namespace BikeVille.Controllers
     {
         private readonly AdventureWorksLt2019Context _context;
         private readonly FilterService _filterService;
+        private readonly ErrorHandlingService _errorHandlingService;
 
-        public ProductsController(AdventureWorksLt2019Context context, FilterService filterService)
+        public ProductsController(AdventureWorksLt2019Context context, FilterService filterService, ErrorHandlingService errorHandlingService)
         {
             _context = context;
             _filterService = filterService;
+            _errorHandlingService = errorHandlingService;
         }
 
         // GET: api/Products1
@@ -34,18 +38,43 @@ namespace BikeVille.Controllers
             return await _context.Products.ToListAsync();
         }
 
-        // GET: api/Products1/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
+            try
             {
-                return NotFound();
+                // Trova il prodotto
+                var product = await _context.Products.FindAsync(id);
+
+                // Se il prodotto non esiste, lancia un'eccezione
+                if (product == null)
+                {
+                    throw new GenericException($"Prodotto con ID {id} non trovato.", 404);
+                }
+
+                // Restituisci il prodotto
+                return product;
+            }
+            catch (GenericException ex)
+            {
+                // Registra l'errore nel database
+                await _errorHandlingService.LogErrorAsync(ex);
+                // Restituisci un errore 404
+                return NotFound(new
+                {
+                    Message = ex.Message,
+                    ProductId = id
+                });
+            }
+            catch (Exception ex)
+            {
+                // Gestisci errori generici
+                await _errorHandlingService.LogErrorAsync(ex);
+
+                // Restituisci un errore 500
+                return StatusCode(StatusCodes.Status500InternalServerError, "Errore durante il recupero del prodotto.");
             }
 
-            return product;
         }
 
         //Funzione per recuperare i prodotti in base alla parent-categories
@@ -60,19 +89,19 @@ namespace BikeVille.Controllers
                                                     // Chiave esterna della tabella ProductCategories
                                                     category => category.ProductCategoryId,
                                                     // Risultato della join
-                                                    (product, category) => new { Product = product, Category = category } 
+                                                    (product, category) => new { Product = product, Category = category }
                                                 )
                                                 // Filtro sul ParentProductCategoryId
                                                 .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId)
                                                 // Seleziona solo i prodotti
-                                                .Select(joined => joined.Product) 
+                                                .Select(joined => joined.Product)
                                                 .ToListAsync();
             return Ok(products);
         }
 
         //Funzione per filtrare le biciclette in base ai filtri selezionati
         [HttpGet("get-filtered-bikes")]
-        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size,[FromQuery]int?price)
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size, [FromQuery] int? price)
         {
             var query = _context.Products.Join(
                 _context.ProductCategories,
@@ -169,7 +198,7 @@ namespace BikeVille.Controllers
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
         {
             var topCategories = await _context.ProductCategories
-                .Take(4) 
+                .Take(4)
                 .ToListAsync();
 
             return Ok(topCategories);
@@ -233,7 +262,7 @@ namespace BikeVille.Controllers
             return Ok(productModel.ProductModelId);
         }
 
-        
+
 
         // PUT: api/Products1/5
         [HttpPut("{id}")]
