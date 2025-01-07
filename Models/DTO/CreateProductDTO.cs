@@ -9,7 +9,7 @@
         public float? StandardCost { get; set; }
         public float? ListPrice { get; set; }
         public string? Size { get; set; }
-        public float Weight { get; set; }
+        public float? Weight { get; set; } 
         public int ProductCategoryId { get; set; }
         public int ProductModelId { get; set; }
         public DateTime SellStartDate { get; set; }
@@ -19,8 +19,9 @@
         public string? ThumbnailPhotoFileName { get; set; }
         public string? Rowguid { get; set; }
         public DateTime ModifiedDate { get; set; }
-        public string? ProductCategory { get; set; }
-        public string? ProductModel { get; set; }
-        public string[]? SalesOrderDetails { get; set; } = [];
+
+        //public string? ProductCategory { get; set; }
+        //public string? ProductModel { get; set; }
+        //public string[]? SalesOrderDetails { get; set; } = [];
     }
 }

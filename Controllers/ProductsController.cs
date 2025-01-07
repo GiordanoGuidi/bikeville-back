@@ -135,13 +135,99 @@ namespace BikeVille.Controllers
 
         // POST: api/Products1
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<Product>> PostProduct(CreateProductDTO createProductDTO)
         {
+            //verify if the data entered are valid
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            //verify if the product already exists in the sql database
+            var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == createProductDTO.ProductId);
+
+            if (existingProduct != null)
+            {
+                //if the product exists already
+                return Conflict(new { Message = "Product address already exists in the system." });
+            }
+            else
+            {
+                Console.WriteLine("Product not found in the database");
+            }
+
+
+            // Verifica che il ProductModelId esista
+            //var productModelExists = await _context.ProductModels.AnyAsync(pm => pm.ProductModelId == createProductDTO.ProductModelId);
+            //if (!productModelExists)
+            //{
+            //    return BadRequest(new { Message = "Invalid ProductModelId. The specified ProductModel does not exist." });
+            //}
+
+            // Verifica che il ProductCategoryId esista (se applicabile)
+            //var productCategoryExists = await _context.ProductCategories.AnyAsync(pc => pc.ProductCategoryId == createProductDTO.ProductCategoryId);
+            //if (!productCategoryExists)
+            //{
+            //    return BadRequest(new { Message = "Invalid ProductCategoryId. The specified ProductCategory does not exist." });
+            //}
+
+            // Ottieni l'ora corrente in Italia
+            DateTime currentTimeInItaly = DateTime.UtcNow.AddHours(1); // Gestione ora legale (CEST)
+
+            /*if the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
+            // Map CreateProductDTO to Product entity
+            var product = new Product
+            {
+                
+                Name = createProductDTO.Name,
+                ProductNumber = createProductDTO.ProductNumber,
+                Color = createProductDTO.Color,
+                StandardCost = createProductDTO.StandardCost.HasValue ? (decimal)createProductDTO.StandardCost : 0M,
+                ListPrice = createProductDTO.ListPrice.HasValue ? (decimal)createProductDTO.ListPrice : 0M,
+                Size = createProductDTO.Size,
+                Weight = createProductDTO.Weight.HasValue ? (decimal)createProductDTO.Weight : 0M,
+                ProductCategoryId = createProductDTO.ProductCategoryId,
+                ProductModelId = createProductDTO.ProductModelId,
+                SellStartDate = createProductDTO.SellStartDate,
+                SellEndDate = createProductDTO.SellEndDate,
+                DiscontinuedDate = createProductDTO.DiscontinuedDate,
+                ThumbnailPhotoFileName = createProductDTO.ThumbnailPhotoFileName,
+                ThumbNailPhoto = createProductDTO.ThumbnailPhoto != null
+            ? Convert.FromBase64String(createProductDTO.ThumbnailPhoto)
+            : null,
+                Rowguid = Guid.NewGuid(),
+                ModifiedDate = currentTimeInItaly,
+               
+            };
+
+            // Gestisci la decodifica della foto Thumbnail se la stringa è valida
+            //if (!string.IsNullOrEmpty(createProductDTO.ThumbnailPhoto) && IsBase64String(createProductDTO.ThumbnailPhoto))
+            //{
+            //    product.ThumbNailPhoto = Convert.FromBase64String(createProductDTO.ThumbnailPhoto);
+            //}
+            //else
+            //{
+            //    // Se la stringa non è Base64 valida, imposta la foto come null
+            //    product.ThumbNailPhoto = null;
+            //}
+
+            //save the new product in sql database
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.ProductId }, product);
+            //if it's successful return a 200(ok)
+            return Ok(new { Message = "Product created successfully" });
         }
+
+        //private bool IsBase64String(string thumbnailPhoto)
+        //{
+        //    if (string.IsNullOrWhiteSpace(thumbnailPhoto))
+        //        return false;
+
+        //    Span<byte> buffer = new Span<byte>(new byte[thumbnailPhoto.Length * 3 / 4]);
+        //    return Convert.TryFromBase64String(thumbnailPhoto, buffer, out _);
+        //}
+
+
+
 
         // DELETE: api/Products1/5
         [HttpDelete("{id}")]
