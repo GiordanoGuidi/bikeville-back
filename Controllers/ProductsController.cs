@@ -155,22 +155,11 @@ namespace BikeVille.Controllers
             }
 
 
-            // Verifica che il ProductModelId esista
-            //var productModelExists = await _context.ProductModels.AnyAsync(pm => pm.ProductModelId == createProductDTO.ProductModelId);
-            //if (!productModelExists)
-            //{
-            //    return BadRequest(new { Message = "Invalid ProductModelId. The specified ProductModel does not exist." });
-            //}
+            
 
-            // Verifica che il ProductCategoryId esista (se applicabile)
-            //var productCategoryExists = await _context.ProductCategories.AnyAsync(pc => pc.ProductCategoryId == createProductDTO.ProductCategoryId);
-            //if (!productCategoryExists)
-            //{
-            //    return BadRequest(new { Message = "Invalid ProductCategoryId. The specified ProductCategory does not exist." });
-            //}
-
-            // Ottieni l'ora corrente in Italia
-            DateTime currentTimeInItaly = DateTime.UtcNow.AddHours(1); // Gestione ora legale (CEST)
+            // Ottieni l'ora corrente in Italia (fuso orario CET/CEST)
+            TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
+            DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
 
             /*if the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
             // Map CreateProductDTO to Product entity
@@ -205,7 +194,7 @@ namespace BikeVille.Controllers
             //}
             //else
             //{
-            //    // Se la stringa non è Base64 valida, imposta la foto come null
+            //   // Se la stringa non è Base64 valida, imposta la foto come null
             //    product.ThumbNailPhoto = null;
             //}
 
@@ -217,16 +206,14 @@ namespace BikeVille.Controllers
             return Ok(new { Message = "Product created successfully" });
         }
 
-        //private bool IsBase64String(string thumbnailPhoto)
-        //{
-        //    if (string.IsNullOrWhiteSpace(thumbnailPhoto))
-        //        return false;
+        private bool IsBase64String(string thumbnailPhoto)
+        {
+            if (string.IsNullOrWhiteSpace(thumbnailPhoto))
+                return false;
 
-        //    Span<byte> buffer = new Span<byte>(new byte[thumbnailPhoto.Length * 3 / 4]);
-        //    return Convert.TryFromBase64String(thumbnailPhoto, buffer, out _);
-        //}
-
-
+            Span<byte> buffer = new Span<byte>(new byte[thumbnailPhoto.Length * 3 / 4]);
+            return Convert.TryFromBase64String(thumbnailPhoto, buffer, out _);
+        }
 
 
         // DELETE: api/Products1/5
