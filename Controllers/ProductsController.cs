@@ -9,18 +9,26 @@ using Microsoft.EntityFrameworkCore;
 using BikeVille.Models;
 using BikeVille.Models.DTO;
 using Microsoft.Data.SqlClient;
+using BikeVille.Models.Services;
+using BikeVille.Models.DTO.filters;
+using BikeVille.Exceptions;
+using BikeVille.Services;
 
 namespace BikeVille.Controllers
-{ 
+{
     [Route("api/[controller]")]
     [ApiController]
     public class ProductsController : ControllerBase
     {
         private readonly AdventureWorksLt2019Context _context;
+        private readonly FilterService _filterService;
+        private readonly ErrorHandlingService _errorHandlingService;
 
-        public ProductsController(AdventureWorksLt2019Context context)
+        public ProductsController(AdventureWorksLt2019Context context, FilterService filterService, ErrorHandlingService errorHandlingService)
         {
             _context = context;
+            _filterService = filterService;
+            _errorHandlingService = errorHandlingService;
         }
 
         // GET: api/Products1
@@ -30,29 +38,230 @@ namespace BikeVille.Controllers
             return await _context.Products.ToListAsync();
         }
 
-        // GET: api/Products1/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Product>> GetProduct(int id)
         {
-            var product = await _context.Products.FindAsync(id);
-
-            if (product == null)
+            try
             {
-                return NotFound();
+                // Trova il prodotto
+                var product = await _context.Products.FindAsync(id);
+
+                // Se il prodotto non esiste, lancia un'eccezione
+                if (product == null)
+                {
+                    throw new GenericException($"Prodotto con ID {id} non trovato.", 404);
+                }
+
+                // Restituisci il prodotto
+                return product;
+            }
+            catch (GenericException ex)
+            {
+                // Registra l'errore nel database
+                await _errorHandlingService.LogErrorAsync(ex);
+                // Restituisci un errore 404
+                return NotFound(new
+                {
+                    Message = ex.Message,
+                    ProductId = id
+                });
+            }
+            catch (Exception ex)
+            {
+                // Gestisci errori generici
+                await _errorHandlingService.LogErrorAsync(ex);
+
+                // Restituisci un errore 500
+                return StatusCode(StatusCodes.Status500InternalServerError, "Errore durante il recupero del prodotto.");
             }
 
-            return product;
         }
 
-        // GET: api/Products/Categories
+        //Funzione per recuperare i prodotti in base alla parent-categories
+        [HttpGet("by-parent-category")]
+        public async Task<ActionResult<Product>> GetProductByParentCategory(int parentCategoryId)
+        {
+            var products = await _context.Products
+                                                .Join(
+                                                    _context.ProductCategories,
+                                                    // Chiave primaria della tabella Products
+                                                    product => product.ProductCategoryId,
+                                                    // Chiave esterna della tabella ProductCategories
+                                                    category => category.ProductCategoryId,
+                                                    // Risultato della join
+                                                    (product, category) => new { Product = product, Category = category }
+                                                )
+                                                // Filtro sul ParentProductCategoryId
+                                                .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId)
+                                                // Seleziona solo i prodotti
+                                                .Select(joined => joined.Product)
+                                                .ToListAsync();
+            return Ok(products);
+        }
+
+        //Funzione per filtrare le biciclette in base ai filtri selezionati
+        [HttpGet("get-filtered-bikes")]
+        public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size, [FromQuery] int? price)
+        {
+            var query = _context.Products.Join(
+                _context.ProductCategories,
+                product => product.ProductCategoryId,
+                category => category.ProductCategoryId,
+                (product, category) => new { Product = product, Category = category }
+            )
+            .Where(joined => joined.Category.ParentProductCategoryId == parentCategoryId);
+
+            // Filtro per colore se presente
+            if (!string.IsNullOrWhiteSpace(color))
+            {
+                query = query.Where(joined => joined.Product.Color == color);
+            }
+
+            // Filtro per tipologia se presente
+            if (typeId != null)
+            {
+                query = query.Where(joined => joined.Product.ProductCategoryId == typeId);
+            }
+            // Filtro per taglia se presente
+            if (size != null)
+            {
+                query = query.Where(joined => joined.Product.Size == size);
+            }
+            // Filtro per prezzo se presente
+            if (price != null)
+            {
+                switch (parentCategoryId)
+                {
+                    //Biciclette
+                    case 1:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 700;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 700;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1500);
+                                break;
+                            case 3:
+                                price = 1500;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 2500);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 2500);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+                    //Componenti 
+                    case 2:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 100;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 100;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 500);
+                                break;
+                            case 3:
+                                price = 500;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 1000);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 1000);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+                    //Vestiti
+                    case 3:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 30);
+                                break;
+                            case 3:
+                                price = 30;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 50);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 50);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+                    //Accessori
+                    case 4:
+                        switch (price)
+                        {
+                            case 1:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice <= price);
+                                break;
+                            case 2:
+                                price = 10;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 30);
+                                break;
+                            case 3:
+                                price = 30;
+                                query = query.Where(joined => joined.Product.ListPrice >= price && joined.Product.ListPrice <= 50);
+                                break;
+                            case 4:
+                                query = query.Where(joined => joined.Product.ListPrice >= 50);
+                                break;
+
+                            default:
+                                Console.WriteLine("Scelta non valida.");
+                                break;
+                        }
+                        break;
+
+                }
+            }
+
+            var filteredProducts = await query
+                .Select(joined => joined.Product)
+                .ToListAsync();
+            return Ok(filteredProducts);
+        }
+
+
+        // Funzione per recuperare le Parent-categories
         [HttpGet("parent-categories")]
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
         {
             var topCategories = await _context.ProductCategories
-                .Take(4) 
+                .Take(4)
                 .ToListAsync();
 
             return Ok(topCategories);
+        }
+
+        //Funzione per recuperare i filtri specifici della categoria (Bike)
+        [HttpGet("product-filters")]
+        public async Task<ActionResult<Filters>> GetFilters(int parentCategoryId)
+        {
+            // Recupero i filtri
+            var filters = await _filterService.GetFiltersAsync(parentCategoryId);
+
+            return Ok(filters);
         }
 
         [HttpGet("categoryId/{categoryId}")]
@@ -102,6 +311,8 @@ namespace BikeVille.Controllers
 
             return Ok(productModel.ProductModelId);
         }
+
+
 
         // PUT: api/Products1/5
         [HttpPut("{id}")]
