@@ -5,6 +5,8 @@ using System.Security.Claims;
 using System.Text;
 using BikeVille.Models;
 using BikeVille.Models.Mongodb;
+using MongoDB.Driver;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 using BikeVille.Services;
 using BikeVille.Exceptions;
 
@@ -130,6 +132,12 @@ namespace BikeVille.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             string tokenString = tokenHandler.WriteToken(token);
             return tokenString;
+        }
+
+        [HttpPost("admin/{email}")]
+        public bool AdminCheck(string email)
+        {
+            return _passwordService.isAdmin(email);
         }
     }
 }

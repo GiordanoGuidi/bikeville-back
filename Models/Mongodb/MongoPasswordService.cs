@@ -17,5 +17,17 @@ namespace BikeVille.Models.Mongodb
             return _passwordCollection.Find(filter).FirstOrDefault();
         }
 
+        public bool isAdmin(string emailAddress)
+        {
+            var filter = Builders<UserCredentials>.Filter.And(
+            Builders<UserCredentials>.Filter.Eq(u => u.EmailAddress, emailAddress),
+            Builders<UserCredentials>.Filter.Eq(u => u.Role, "Admin")
+        );
+
+            var user = _passwordCollection.Find(filter).FirstOrDefault();
+
+            return user != null;
+        }
+
     }
 }
