@@ -187,16 +187,7 @@ namespace BikeVille.Controllers
                
             };
 
-            // Gestisci la decodifica della foto Thumbnail se la stringa è valida
-            //if (!string.IsNullOrEmpty(createProductDTO.ThumbnailPhoto) && IsBase64String(createProductDTO.ThumbnailPhoto))
-            //{
-            //    product.ThumbNailPhoto = Convert.FromBase64String(createProductDTO.ThumbnailPhoto);
-            //}
-            //else
-            //{
-            //   // Se la stringa non è Base64 valida, imposta la foto come null
-            //    product.ThumbNailPhoto = null;
-            //}
+            
 
             //save the new product in sql database
             _context.Products.Add(product);
@@ -206,14 +197,7 @@ namespace BikeVille.Controllers
             return Ok(new { Message = "Product created successfully" });
         }
 
-        private bool IsBase64String(string thumbnailPhoto)
-        {
-            if (string.IsNullOrWhiteSpace(thumbnailPhoto))
-                return false;
-
-            Span<byte> buffer = new Span<byte>(new byte[thumbnailPhoto.Length * 3 / 4]);
-            return Convert.TryFromBase64String(thumbnailPhoto, buffer, out _);
-        }
+       
 
 
         // DELETE: api/Products1/5
