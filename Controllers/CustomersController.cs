@@ -12,6 +12,7 @@ using BikeVille.Models.PasswordUtils;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using BikeVille.Utilities;
+using Microsoft.CodeAnalysis.Elfie.Model.Strings;
 
 
 namespace BikeVille.Controllers
@@ -51,6 +52,22 @@ namespace BikeVille.Controllers
 
             return true;
         }
+
+        [HttpGet("/getMail/{id}")]
+        public async Task<IActionResult> GetCustomerEmailById(int id)
+        {
+            var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+            var user = await collection.Find(u => u.CustomerID == id).FirstOrDefaultAsync();
+
+            if (user == null)
+            {
+                return NotFound($"Nessun utente trovato con l'ID {id}.");
+            }
+
+            return Ok(user.EmailAddress);
+        }
+
+
         // GET: api/Customers/5
         [HttpGet("{id}")]
         public async Task<ActionResult<Customer>> GetCustomer(int id)

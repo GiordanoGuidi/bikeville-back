@@ -5,6 +5,8 @@ using System.Security.Claims;
 using System.Text;
 using BikeVille.Models;
 using BikeVille.Models.Mongodb;
+using MongoDB.Driver;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -98,6 +100,12 @@ namespace BikeVille.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             string tokenString = tokenHandler.WriteToken(token);
             return tokenString;
+        }
+
+        [HttpPost("admin/{email}")]
+        public bool AdminCheck(string email)
+        {
+            return _passwordService.isAdmin(email);
         }
     }
 }
