@@ -5,6 +5,10 @@ using System.Security.Claims;
 using System.Text;
 using BikeVille.Models;
 using BikeVille.Models.Mongodb;
+using MongoDB.Driver;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
+using BikeVille.Services;
+using BikeVille.Exceptions;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -16,39 +20,69 @@ namespace BikeVille.Controllers
     {
         private JwtSettings jwtSettings;
         private readonly MongoPasswordService _passwordService;
+        private readonly ErrorHandlingService _errorHandlingService;
 
-        public LoginJwtController(JwtSettings jwtSettings, MongoPasswordService passwordService)
+        public LoginJwtController(JwtSettings jwtSettings, MongoPasswordService passwordService, ErrorHandlingService errorHandlingService)
         {
             this.jwtSettings = jwtSettings;
             _passwordService = passwordService;
+            _errorHandlingService = errorHandlingService;
         }
 
         // POST api/<LoginJwtController>
         [HttpPost]
-        public IActionResult Post([FromBody] Credentials credentials)
+        [HttpPost]
+        public async Task<IActionResult> Post([FromBody] Credentials credentials)
         {
-            // Recupera i dettagli dell'utente dal database (utilizzando il servizio MongoPasswordService)
-            var user = _passwordService.GetUserByEmail(credentials.Email);
-            //Controllo se l'email esiste
-            if (user == null)
+            try
             {
-                return Unauthorized("Email o password non corretti");
+                // Validazione dei parametri in input
+                if (credentials == null || string.IsNullOrWhiteSpace(credentials.Email) || string.IsNullOrWhiteSpace(credentials.Password))
+                {
+                    throw new GenericException("Input non valido: Email o Password mancante.", 400);
+
+                }
+
+                // Recupera i dettagli dell'utente dal database
+                var user = _passwordService.GetUserByEmail(credentials.Email);
+
+                // Controllo se l'email esiste
+                if (user == null)
+                {
+                    // Crea e logga un'eccezione personalizzata
+                    throw new GenericException($"L'email '{credentials.Email}' non è presente nel database.", 404);
+
+                }
+
+                // Verifica la password con hash e salt
+                bool isValidPassword = VerifyPassword(credentials.Password, user.PasswordHash, user.PasswordSalt);
+
+                if (!isValidPassword)
+                {
+                    throw new GenericException("Email o password non corretti.", 401);
+
+                }
+
+                // Genera il token JWT
+                var token = GenerateJwtToken(credentials.Email);
+
+                // Restituisce il token come risposta
+                return Ok(new { token });
             }
-
-            // Verifica la password con hash e salt
-            bool isValidPassword = VerifyPassword(credentials.Password, user.PasswordHash, user.PasswordSalt);
-
-            if (!isValidPassword)
+            catch (GenericException genEx)
             {
-                return Unauthorized("Email o password non corretti");
+                // Log specifico per GenericException
+                await _errorHandlingService.LogErrorAsync(genEx);
+                return StatusCode(500, new { error = genEx.Message, code = genEx.ErrorCode });
             }
-
-            // Genera il token JWT
-            var token = GenerateJwtToken(credentials.Email);
-
-            // Restituisce il token come risposta
-            return Ok(new { token });
+            catch (Exception ex)
+            {
+                // Logga eventuali altri errori
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(500, new { error = "Si è verificato un errore interno." });
+            }
         }
+
 
 
 
@@ -89,8 +123,8 @@ namespace BikeVille.Controllers
                     new Claim (ClaimTypes.Email, email)
                 }),
                 Expires = DateTime.Now.AddMinutes(jwtSettings.TokenExpirationMinutes),
-                Issuer=jwtSettings.Issuer,
-                Audience=jwtSettings.Audience,
+                Issuer = jwtSettings.Issuer,
+                Audience = jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
                 SecurityAlgorithms.HmacSha256Signature)
             };
@@ -98,6 +132,12 @@ namespace BikeVille.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             string tokenString = tokenHandler.WriteToken(token);
             return tokenString;
+        }
+
+        [HttpPost("admin/{email}")]
+        public bool AdminCheck(string email)
+        {
+            return _passwordService.isAdmin(email);
         }
     }
 }

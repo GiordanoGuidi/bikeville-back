@@ -51,4 +51,53 @@ public  class DbManager
 
         return result;
     }
+
+    /// <summary>
+    /// Logs an error in the database using the uspLogError stored procedure.
+    /// </summary>
+    /// <returns>The ID of the logged error.</returns>
+    public async Task<int> LogErrorAsync(ErrorLog errorLog)
+    {
+        int errorLogId = 0;
+
+        using (SqlConnection connection = new SqlConnection(_connectionString))
+        {
+            using (SqlCommand command = new SqlCommand("uspLogError", connection))
+            {
+                command.CommandType = CommandType.StoredProcedure;
+
+                // Add parameters for the stored procedure
+                command.Parameters.AddWithValue("@ErrorTime", errorLog.ErrorTime);
+                command.Parameters.AddWithValue("@UserName", errorLog.UserName);
+                command.Parameters.AddWithValue("@ErrorNumber", errorLog.ErrorNumber);
+                command.Parameters.AddWithValue("@ErrorSeverity", (object)errorLog.ErrorSeverity ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ErrorState", (object)errorLog.ErrorState ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ErrorProcedure", (object)errorLog.ErrorProcedure ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ErrorLine", (object)errorLog.ErrorLine ?? DBNull.Value);
+                command.Parameters.AddWithValue("@ErrorMessage", errorLog.ErrorMessage);
+
+                // Define the output parameter for the ErrorLogId
+                SqlParameter outputParam = new SqlParameter
+                {
+                    ParameterName = "@ErrorLogID",
+                    SqlDbType = SqlDbType.Int,
+                    Direction = ParameterDirection.Output
+                };
+                command.Parameters.Add(outputParam);
+
+                await connection.OpenAsync();
+
+                // Execute the stored procedure
+                await command.ExecuteNonQueryAsync();
+
+                // Retrieve the value of the output parameter
+                if (outputParam.Value != DBNull.Value)
+                {
+                    errorLogId = Convert.ToInt32(outputParam.Value);
+                }
+            }
+        }
+
+        return errorLogId;
+    }
 }
