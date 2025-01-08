@@ -346,13 +346,70 @@ namespace BikeVille.Controllers
 
         // POST: api/Products1
         [HttpPost]
-        public async Task<ActionResult<Product>> PostProduct(Product product)
+        public async Task<ActionResult<Product>> PostProduct(CreateProductDTO createProductDTO)
         {
+            //verify if the data entered are valid
+            if (!ModelState.IsValid)
+                return BadRequest();
+
+            //verify if the product already exists in the sql database
+            var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == createProductDTO.ProductId);
+
+            if (existingProduct != null)
+            {
+                //if the product exists already
+                return Conflict(new { Message = "Product address already exists in the system." });
+            }
+            else
+            {
+                Console.WriteLine("Product not found in the database");
+            }
+
+
+            
+
+            // Ottieni l'ora corrente in Italia (fuso orario CET/CEST)
+            TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
+            DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
+
+            /*if the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
+            // Map CreateProductDTO to Product entity
+            var product = new Product
+            {
+                
+                Name = createProductDTO.Name,
+                ProductNumber = createProductDTO.ProductNumber,
+                Color = createProductDTO.Color,
+                StandardCost = createProductDTO.StandardCost.HasValue ? (decimal)createProductDTO.StandardCost : 0M,
+                ListPrice = createProductDTO.ListPrice.HasValue ? (decimal)createProductDTO.ListPrice : 0M,
+                Size = createProductDTO.Size,
+                Weight = createProductDTO.Weight.HasValue ? (decimal)createProductDTO.Weight : 0M,
+                ProductCategoryId = createProductDTO.ProductCategoryId,
+                ProductModelId = createProductDTO.ProductModelId,
+                SellStartDate = createProductDTO.SellStartDate,
+                SellEndDate = createProductDTO.SellEndDate,
+                DiscontinuedDate = createProductDTO.DiscontinuedDate,
+                ThumbnailPhotoFileName = createProductDTO.ThumbnailPhotoFileName,
+                ThumbNailPhoto = createProductDTO.ThumbnailPhoto != null
+            ? Convert.FromBase64String(createProductDTO.ThumbnailPhoto)
+            : null,
+                Rowguid = Guid.NewGuid(),
+                ModifiedDate = currentTimeInItaly,
+               
+            };
+
+            
+
+            //save the new product in sql database
             _context.Products.Add(product);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetProduct", new { id = product.ProductId }, product);
+            //if it's successful return a 200(ok)
+            return Ok(new { Message = "Product created successfully" });
         }
+
+       
+
 
         // DELETE: api/Products1/5
         [HttpDelete("{id}")]
