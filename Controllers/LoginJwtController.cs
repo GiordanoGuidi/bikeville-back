@@ -33,7 +33,6 @@ namespace BikeVille.Controllers
 
         // POST api/<LoginJwtController>
         [HttpPost]
-        [HttpPost]
         public async Task<IActionResult> Post([FromBody] Credentials credentials)
         {
             try
@@ -66,10 +65,13 @@ namespace BikeVille.Controllers
                 }
 
                 // Genera il token JWT
-                var token = GenerateJwtToken(user);
+                var result = await GenerateJwtToken(user);
 
-                // Restituisce il token come risposta
-                return Ok(new { token });
+                if (result is OkObjectResult okResult && okResult.Value is string token)
+                {
+                    return Ok(new { token });
+                }
+                return BadRequest("Errore nella generazione del token.");
             }
             catch (GenericException genEx)
             {
@@ -131,7 +133,8 @@ namespace BikeVille.Controllers
                 {
                     new Claim (ClaimTypes.Email, user.EmailAddress),
                     new Claim("FirstName", customer.FirstName),   
-                    new Claim("LastName", customer.LastName),     
+                    new Claim("LastName", customer.LastName),
+                    new Claim("Id",customer.CustomerId.ToString()),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
                 Expires = DateTime.Now.AddMinutes(jwtSettings.TokenExpirationMinutes),
@@ -145,7 +148,7 @@ namespace BikeVille.Controllers
             string tokenString = tokenHandler.WriteToken(token);
             Console.WriteLine($"Generated Token: {tokenString}");
             // Restituisco un oggetto JSON che contiene il token
-            return Ok(new { token = tokenString });
+            return Ok( tokenString );
         }
     }
 }
