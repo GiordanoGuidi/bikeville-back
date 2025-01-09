@@ -21,16 +21,19 @@ namespace BikeVille.Controllers
         private JwtSettings jwtSettings;
         private readonly MongoPasswordService _passwordService;
         private readonly ErrorHandlingService _errorHandlingService;
+        private readonly AdventureWorksLt2019Context _context;
 
-        public LoginJwtController(JwtSettings jwtSettings, MongoPasswordService passwordService, ErrorHandlingService errorHandlingService)
+
+        public LoginJwtController(JwtSettings jwtSettings, MongoPasswordService passwordService, ErrorHandlingService errorHandlingService, AdventureWorksLt2019Context context)
         {
             this.jwtSettings = jwtSettings;
             _passwordService = passwordService;
             _errorHandlingService = errorHandlingService;
+            _context = context;
+
         }
 
         // POST api/<LoginJwtController>
-        [HttpPost]
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Credentials credentials)
         {
@@ -64,10 +67,13 @@ namespace BikeVille.Controllers
                 }
 
                 // Genera il token JWT
-                var token = GenerateJwtToken(credentials.Email);
+                var result = await GenerateJwtToken(user);
 
-                // Restituisce il token come risposta
-                return Ok(new { token });
+                if (result is OkObjectResult okResult && okResult.Value is string token)
+                {
+                    return Ok(new { token });
+                }
+                return BadRequest("Errore nella generazione del token.");
             }
             catch (GenericException genEx)
             {
@@ -109,18 +115,29 @@ namespace BikeVille.Controllers
 
 
         //Metodo per creare un JWT
-        private string GenerateJwtToken(string email)
+        private async Task<ActionResult> GenerateJwtToken(UserCredentials user)
         {
             var secretKey = jwtSettings.SecretKey;
             var tokenHandler = new JwtSecurityTokenHandler();
             //Converto la chiave segreta in un array di byte
             var key = Encoding.ASCII.GetBytes(secretKey);
+            var customer = await _context.Customers.FindAsync(user.CustomerID);
+
+            // Verifico che l'utente esista
+            if (customer == null)
+            {
+                return BadRequest("Utente non trovato.");
+            }
 
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
                 {
-                    new Claim (ClaimTypes.Email, email)
+                    new Claim (ClaimTypes.Email, user.EmailAddress),
+                    new Claim("FirstName", customer.FirstName),   
+                    new Claim("LastName", customer.LastName),
+                    new Claim("Id",customer.CustomerId.ToString()),
+                    new Claim(ClaimTypes.Role, user.Role)
                 }),
                 Expires = DateTime.Now.AddMinutes(jwtSettings.TokenExpirationMinutes),
                 Issuer = jwtSettings.Issuer,
@@ -131,7 +148,9 @@ namespace BikeVille.Controllers
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             string tokenString = tokenHandler.WriteToken(token);
-            return tokenString;
+            Console.WriteLine($"Generated Token: {tokenString}");
+            // Restituisco  il token
+            return Ok( tokenString );
         }
 
         [HttpPost("admin/{email}")]
