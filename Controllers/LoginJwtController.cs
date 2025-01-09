@@ -5,6 +5,8 @@ using System.Security.Claims;
 using System.Text;
 using BikeVille.Models;
 using BikeVille.Models.Mongodb;
+using MongoDB.Driver;
+using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pages.Manage;
 using BikeVille.Services;
 using BikeVille.Exceptions;
 
@@ -149,6 +151,12 @@ namespace BikeVille.Controllers
             Console.WriteLine($"Generated Token: {tokenString}");
             // Restituisco  il token
             return Ok( tokenString );
+        }
+
+        [HttpPost("admin/{email}")]
+        public bool AdminCheck(string email)
+        {
+            return _passwordService.isAdmin(email);
         }
     }
 }

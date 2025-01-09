@@ -50,6 +50,7 @@ public partial class AdventureWorksLt2019Context : DbContext
 
         => optionsBuilder.UseSqlServer("Data Source=BETACOM-PCHP03\\SQLEXPRESS;Initial Catalog=AdventureWorksLT2019;Integrated Security=True;Connect Timeout=30;Encrypt=False;Trust Server Certificate=False;Application Intent=ReadWrite;Multi Subnet Failover=False");
 
+        
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.UseCollation("SQL_Latin1_General_CP1_CI_AS");
