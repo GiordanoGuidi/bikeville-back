@@ -147,7 +147,7 @@ namespace BikeVille.Controllers
             var token = tokenHandler.CreateToken(tokenDescriptor);
             string tokenString = tokenHandler.WriteToken(token);
             Console.WriteLine($"Generated Token: {tokenString}");
-            // Restituisco un oggetto JSON che contiene il token
+            // Restituisco  il token
             return Ok( tokenString );
         }
     }
