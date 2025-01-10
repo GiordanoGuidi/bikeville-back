@@ -312,38 +312,6 @@ namespace BikeVille.Controllers
             return Ok(productModel.ProductModelId);
         }
 
-
-
-        // PUT: api/Products1/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutProduct(int id, CreateProductDTO product)
-        {
-            if (id != product.ProductId)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(product).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ProductExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
         // POST: api/Products1
         [HttpPost]
         public async Task<ActionResult<Product>> PostProduct(CreateProductDTO createProductDTO)
@@ -408,9 +376,71 @@ namespace BikeVille.Controllers
             return Ok(new { Message = "Product created successfully" });
         }
 
-       
 
+        // PUT: api/Products1/{id}
+          [HttpPut("{id}")]
+        public async Task<IActionResult> PutProduct(int id, UpdateProductDTO updateProductDTO)
+        {
+            // Verifica se i dati inviati sono validi
+            if (!ModelState.IsValid)
+                return BadRequest();
 
+            // Cerca il prodotto esistente nel database
+            var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
+
+            if (existingProduct == null)
+            {
+                // Se il prodotto non esiste, restituisci un errore 404 (Not Found)
+                return NotFound(new { Message = "Product not found in the system." });
+            }
+
+            // Ottieni l'ora corrente in Italia (fuso orario CET/CEST)
+            TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
+            DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
+
+            // Aggiorna le proprietà del prodotto esistente basandoti sui dati ricevuti
+            existingProduct.Name = updateProductDTO.Name ?? existingProduct.Name;
+            existingProduct.ProductNumber = updateProductDTO.ProductNumber ?? existingProduct.ProductNumber;
+            existingProduct.Color = updateProductDTO.Color ?? existingProduct.Color;
+            existingProduct.StandardCost = updateProductDTO.StandardCost.HasValue ? (decimal)updateProductDTO.StandardCost : existingProduct.StandardCost;
+            existingProduct.ListPrice = updateProductDTO.ListPrice.HasValue ? (decimal)updateProductDTO.ListPrice : existingProduct.ListPrice;
+            existingProduct.Size = updateProductDTO.Size ?? existingProduct.Size;
+            existingProduct.Weight = updateProductDTO.Weight.HasValue ? (decimal)updateProductDTO.Weight : existingProduct.Weight;
+            existingProduct.ProductCategoryId = updateProductDTO.ProductCategoryId ?? existingProduct.ProductCategoryId;
+            existingProduct.ProductModelId = updateProductDTO.ProductModelId ?? existingProduct.ProductModelId;
+            existingProduct.SellStartDate = updateProductDTO.SellStartDate ?? existingProduct.SellStartDate;
+            existingProduct.SellEndDate = updateProductDTO.SellEndDate ?? existingProduct.SellEndDate;
+            existingProduct.DiscontinuedDate = updateProductDTO.DiscontinuedDate ?? existingProduct.DiscontinuedDate;
+            existingProduct.ThumbnailPhotoFileName = updateProductDTO.ThumbnailPhotoFileName ?? existingProduct.ThumbnailPhotoFileName;
+            existingProduct.ThumbNailPhoto = updateProductDTO.ThumbnailPhoto != null
+                ? Convert.FromBase64String(updateProductDTO.ThumbnailPhoto)
+                : existingProduct.ThumbNailPhoto;
+            existingProduct.ModifiedDate = currentTimeInItaly;
+
+            // Salva le modifiche nel database
+            _context.Entry(existingProduct).State = EntityState.Modified;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                if (!_context.Products.Any(p => p.ProductId == id))
+                {
+                    return NotFound(ex.Message);
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            // Restituisci una risposta 204 (No Content) per indicare che l'aggiornamento è avvenuto con successo
+            return NoContent();
+        }
+
+        
         // DELETE: api/Products1/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
