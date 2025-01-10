@@ -429,16 +429,20 @@ namespace BikeVille.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            //Find the product
             var product = await _context.Products.FindAsync(id);
+            //if the product doesn't exist throw an exception
             if (product == null)
             {
-                return NotFound();
+                throw new GenericException($"Prodotto con ID {id} non trovato.", 404);
             }
 
+            //remove the product
             _context.Products.Remove(product);
+            //save the changes in the database
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { Message = "Product removed successfully" });
         }
 
         private bool ProductExists(int id)
