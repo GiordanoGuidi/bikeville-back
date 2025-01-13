@@ -386,6 +386,18 @@ namespace BikeVille.Controllers
                 return BadRequest();
 
             // Cerca il prodotto esistente nel database
+            var productCategoryId = await _context.ProductCategories
+                .Where(pc => pc.Name == updateProductDTO.ProductCategory)
+                .Select(pc => pc.ProductCategoryId)
+                .FirstOrDefaultAsync();
+
+            // Cerca il modello esistente nel database
+            var productModelId = await _context.ProductModels
+                .Where(pm => pm.Name == updateProductDTO.ProductModel)
+                .Select(pm => pm.ProductModelId)
+                .FirstOrDefaultAsync();
+
+
             var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == id);
 
             if (existingProduct == null)
@@ -406,8 +418,8 @@ namespace BikeVille.Controllers
             existingProduct.ListPrice = updateProductDTO.ListPrice.HasValue ? (decimal)updateProductDTO.ListPrice : existingProduct.ListPrice;
             existingProduct.Size = updateProductDTO.Size ?? existingProduct.Size;
             existingProduct.Weight = updateProductDTO.Weight.HasValue ? (decimal)updateProductDTO.Weight : existingProduct.Weight;
-            existingProduct.ProductCategoryId = updateProductDTO.ProductCategoryId ?? existingProduct.ProductCategoryId;
-            existingProduct.ProductModelId = updateProductDTO.ProductModelId ?? existingProduct.ProductModelId;
+            existingProduct.ProductCategoryId =productCategoryId == 0 ? existingProduct.ProductCategoryId : productCategoryId;
+            existingProduct.ProductModelId = productModelId == 0 ? existingProduct.ProductModelId : productModelId;
             existingProduct.SellStartDate = updateProductDTO.SellStartDate ?? existingProduct.SellStartDate;
             existingProduct.SellEndDate = updateProductDTO.SellEndDate ?? existingProduct.SellEndDate;
             existingProduct.DiscontinuedDate = updateProductDTO.DiscontinuedDate ?? existingProduct.DiscontinuedDate;

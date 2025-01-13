@@ -9,8 +9,8 @@
         public decimal? ListPrice { get; set; }
         public string? Size { get; set; }
         public decimal? Weight { get; set; }
-        public int? ProductCategoryId { get; set; }
-        public int? ProductModelId { get; set; }
+        public string? ProductCategory { get; set; }
+        public string? ProductModel { get; set; }
         public DateTime? SellStartDate { get; set; }
         public DateTime? SellEndDate { get; set; }
         public DateTime? DiscontinuedDate { get; set; }
