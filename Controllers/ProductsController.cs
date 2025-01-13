@@ -99,6 +99,20 @@ namespace BikeVille.Controllers
             return Ok(products);
         }
 
+        [HttpGet("getDescByModelId/{modelId}")]
+        public async Task<ActionResult<ProductDescriptionDTO>> GetDescription(int modelId)
+        {
+            var description = await _context.ProductDescriptions
+                .FromSqlInterpolated($"SELECT Description FROM [SalesLT].[ProductDescription] INNER JOIN [SalesLT].[ProductModelProductDescription] ON [ProductDescription].[ProductDescriptionID] = [ProductModelProductDescription].[ProductDescriptionID] INNER JOIN [SalesLT].[ProductModel] ON [ProductModelProductDescription].[ProductModelID] = [ProductModel].[ProductModelID] WHERE [ProductModel].[ProductModelID] = {modelId} AND [ProductModelProductDescription].[Culture] = 'en'")
+                .Select(d => new ProductDescriptionDTO
+                {
+                    Description = d.Description
+                })
+                .ToListAsync();
+
+            return Ok(description);
+        }
+
         //Funzione per filtrare le biciclette in base ai filtri selezionati
         [HttpGet("get-filtered-bikes")]
         public async Task<ActionResult<List<Product>>> GetProductsByFilter([FromQuery] string? color, [FromQuery] int parentCategoryId, [FromQuery] int? typeId, [FromQuery] string? size, [FromQuery] int? price)
@@ -457,16 +471,20 @@ namespace BikeVille.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
+            //Find the product
             var product = await _context.Products.FindAsync(id);
+            //if the product doesn't exist throw an exception
             if (product == null)
             {
-                return NotFound();
+                throw new GenericException($"Prodotto con ID {id} non trovato.", 404);
             }
 
+            //remove the product
             _context.Products.Remove(product);
+            //save the changes in the database
             await _context.SaveChangesAsync();
 
-            return NoContent();
+            return Ok(new { Message = "Product removed successfully" });
         }
 
         private bool ProductExists(int id)
