@@ -16,6 +16,8 @@ using Microsoft.CodeAnalysis.Elfie.Model.Strings;
 using BikeVille.Utilities;
 using BikeVille.Exceptions;
 using BikeVille.Services;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 
 
 namespace BikeVille.Controllers
@@ -252,6 +254,22 @@ namespace BikeVille.Controllers
         private bool CustomerExists(int id)
         {
             return _context.Customers.Any(e => e.CustomerId == id);
+        }
+
+        [HttpGet("ValidateAdminToken")]
+        [Authorize]
+        public IActionResult ValidateAdminToken()
+        {
+            // Verifica se il token è valido(altrimenti User sarebbe null) e controllo che il ruolo sia admin
+            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+            if (roleClaim != "Admin")
+            {
+                return Unauthorized(new { Message = "You are not authorized to perform this action." });
+            }
+
+            // Se il token è valido, restituisce OK
+            return Ok(new { valid = true });
         }
     }
 }
