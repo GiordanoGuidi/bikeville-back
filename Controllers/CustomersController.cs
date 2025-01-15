@@ -114,35 +114,80 @@ namespace BikeVille.Controllers
             }
         }
 
-        // PUT: api/Customers/5
+        // PUT: api/Customers/{id}
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutCustomer(int id, Customer customer)
+        public async Task<IActionResult> PutCustomer(int id, UpdateCustomerDTO updateCustomerDTO)
         {
-            if (id != customer.CustomerId)
-            {
+            if (!ModelState.IsValid)
                 return BadRequest();
-            }
-
-            _context.Entry(customer).State = EntityState.Modified;
 
             try
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!CustomerExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
+                // Cerca il cliente esistente in SQL Server
+                var existingCustomer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == id);
 
-            return NoContent();
+                if (existingCustomer == null)
+                {
+                    return NotFound(new { Message = "Customer not found in the system." });
+                }
+
+                // Aggiorna i campi su SQL Server
+                existingCustomer.Title = updateCustomerDTO.Title ?? existingCustomer.Title;
+                existingCustomer.FirstName = updateCustomerDTO.FirstName != null
+                    ? StringHelper.CapitalizeFirstLetter(updateCustomerDTO.FirstName)
+                    : existingCustomer.FirstName;
+                existingCustomer.LastName = updateCustomerDTO.LastName != null
+                    ? StringHelper.CapitalizeFirstLetter(updateCustomerDTO.LastName)
+                    : existingCustomer.LastName;
+                existingCustomer.CompanyName = updateCustomerDTO.CompanyName != null
+                    ? StringHelper.CapitalizeFirstLetter(updateCustomerDTO.CompanyName)
+                    : existingCustomer.CompanyName;
+                existingCustomer.Phone = updateCustomerDTO.Phone ?? existingCustomer.Phone;
+                existingCustomer.ModifiedDate = DateTime.UtcNow;
+
+                _context.Entry(existingCustomer).State = EntityState.Modified;
+
+                // Aggiorna EmailAddress su MongoDB
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                var userCredentials = await collection.Find(u => u.CustomerID == id).FirstOrDefaultAsync();
+
+                if (userCredentials != null)
+                {
+                    if (!string.IsNullOrEmpty(updateCustomerDTO.EmailAddress))
+                    {
+                        // Verifica se l'email esiste già in MongoDB per un altro cliente
+                        var existingEmailInMongo = await collection.Find(u => u.EmailAddress == updateCustomerDTO.EmailAddress && u.CustomerID != id).FirstOrDefaultAsync();
+
+                        if (existingEmailInMongo != null)
+                        {
+                            throw new GenericException("Email già in uso non può essere registrata.", 409);
+                        }
+
+                        userCredentials.EmailAddress = updateCustomerDTO.EmailAddress;
+
+                        // Salva le modifiche in MongoDB
+                        var filter = Builders<UserCredentials>.Filter.Eq(u => u.CustomerID, id);
+                        await collection.ReplaceOneAsync(filter, userCredentials);
+                    }
+                }
+
+                // Salva le modifiche in SQL Server
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "Customer updated successfully" });
+            }
+            catch (GenericException ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return Conflict(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during customer update.");
+            }
         }
+
 
         // POST: api/Customers
         [HttpPost]
