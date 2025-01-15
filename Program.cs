@@ -105,7 +105,9 @@ namespace BikeVille
                         //Specifica la chiave usata per firmare e verificare il token.
                         IssuerSigningKey =
                         new SymmetricSecurityKey(
-                            Encoding.UTF8.GetBytes(jwtSettings.SecretKey))
+                            Encoding.UTF8.GetBytes(jwtSettings.SecretKey)),
+                        // Rimuove la tolleranza di default di 5 minuti
+                        ClockSkew = TimeSpan.Zero
                     };
                 });
 

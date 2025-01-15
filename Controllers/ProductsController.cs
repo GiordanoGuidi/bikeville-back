@@ -13,6 +13,8 @@ using BikeVille.Models.Services;
 using BikeVille.Models.DTO.filters;
 using BikeVille.Exceptions;
 using BikeVille.Services;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BikeVille.Controllers
 {
@@ -328,8 +330,20 @@ namespace BikeVille.Controllers
 
         // POST: api/Products1
         [HttpPost]
+        [Authorize]//Controllo che il jwt sia valido
         public async Task<ActionResult<Product>> PostProduct(CreateProductDTO createProductDTO)
         {
+            if (User==null) {
+                return Unauthorized(new { Message = "Session is expired." });
+            }
+            // Verifica se il token è valido(altrimenti User sarebbe null) e controllo che il ruolo sia admin
+            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+            if (roleClaim != "Admin")
+            {
+                return Unauthorized(new { Message = "You are not authorized to perform this action." });
+            }
+
             //verify if the data entered are valid
             if (!ModelState.IsValid)
                 return BadRequest();
@@ -340,15 +354,12 @@ namespace BikeVille.Controllers
             if (existingProduct != null)
             {
                 //if the product exists already
-                return Conflict(new { Message = "Product address already exists in the system." });
+                return Conflict(new { Message = "Product number already exists in the system." });
             }
             else
             {
                 Console.WriteLine("Product not found in the database");
             }
-
-
-            
 
             // Ottieni l'ora corrente in Italia (fuso orario CET/CEST)
             TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
