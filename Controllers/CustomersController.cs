@@ -196,9 +196,9 @@ namespace BikeVille.Controllers
                     CompanyName = StringHelper.CapitalizeFirstLetter(createCustomerDto.CompanyName),
                     ModifiedDate = DateTime.UtcNow,
                     Rowguid = Guid.NewGuid(),
-                    EmailAddress = createCustomerDto.EmailAddress,
-                    PasswordHash = result.passwordHash,
-                    PasswordSalt = result.saltBase64,
+                    EmailAddress = "",
+                    PasswordHash = "",
+                    PasswordSalt = "",
                 };
 
                 // Salvataggio in SQL Server
