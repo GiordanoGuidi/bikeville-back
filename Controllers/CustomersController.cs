@@ -16,8 +16,11 @@ using Microsoft.CodeAnalysis.Elfie.Model.Strings;
 using BikeVille.Utilities;
 using BikeVille.Exceptions;
 using BikeVille.Services;
+
+using NuGet.Protocol.Plugins;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+
 
 
 namespace BikeVille.Controllers
@@ -284,16 +287,41 @@ namespace BikeVille.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteCustomer(int id)
         {
-            var customer = await _context.Customers.FindAsync(id);
-            if (customer == null)
+            try
             {
-                return NotFound();
+                //Find the customer
+                var customer = await _context.Customers.FindAsync(id);
+                //If the customer doesn't exist throw an exception
+                if (customer == null)
+                {
+                    throw new GenericException($"Customer con ID {id} non trovato.", 409);
+                }
+
+                //Remove the customer from the SQL database
+                _context.Customers.Remove(customer);
+                await _context.SaveChangesAsync();
+
+                //Remove the customer from the MongoDB
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                //Find the customer and delete it
+                var filter = Builders<UserCredentials>.Filter.Eq("CustomerID", id);
+                var result = await collection.DeleteOneAsync(filter);
+                
+
+                //If it's successful return a 200
+                return Ok(new { Message = "Customer removed successfully" });
             }
-
-            _context.Customers.Remove(customer);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
+            catch (GenericException ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return Conflict(new { Message = ex.Message });
+            }
+            catch(Exception ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the customer.");
+            }
+            
         }
 
         private bool CustomerExists(int id)
