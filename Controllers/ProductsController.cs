@@ -13,6 +13,7 @@ using BikeVille.Models.Services;
 using BikeVille.Models.DTO.filters;
 using BikeVille.Exceptions;
 using BikeVille.Services;
+using Microsoft.DotNet.Scaffolding.Shared.Messaging;
 
 namespace BikeVille.Controllers
 {
@@ -334,60 +335,84 @@ namespace BikeVille.Controllers
             if (!ModelState.IsValid)
                 return BadRequest();
 
-            //verify if the product already exists in the sql database
-            var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == createProductDTO.ProductId);
-
-            if (existingProduct != null)
+            try
             {
-                //if the product exists already
-                return Conflict(new { Message = "Product address already exists in the system." });
-            }
-            else
-            {
-                Console.WriteLine("Product not found in the database");
-            }
+                //verify if the product already exists in the sql database
+                var existingProduct = await _context.Products.FirstOrDefaultAsync(p => p.Name == createProductDTO.Name);
+                var existingProduct1 = await _context.Products.FirstOrDefaultAsync(p => p.ProductNumber == createProductDTO.ProductNumber);
 
+                if (existingProduct != null && existingProduct1 != null)
+                {
+                    //if the product exists already
+                    throw new GenericException("Product Name and ProductNumber already exists in the system.", 409);
+                }
 
-            
+                if (existingProduct != null)
+                {
+                    //if the product exists already
+                    throw new GenericException("Product name already exists in the system.", 409);
+                }
 
-            // Ottieni l'ora corrente in Italia (fuso orario CET/CEST)
-            TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
-            DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
+                if (existingProduct1 != null)
+                {
+                    //if the product exists already
+                    throw new GenericException("Product ProductNumber already exists in the system.", 409);
+                }
 
-            /*if the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
-            // Map CreateProductDTO to Product entity
-            var product = new Product
-            {
                 
-                Name = createProductDTO.Name,
-                ProductNumber = createProductDTO.ProductNumber,
-                Color = createProductDTO.Color,
-                StandardCost = createProductDTO.StandardCost.HasValue ? (decimal)createProductDTO.StandardCost : 0M,
-                ListPrice = createProductDTO.ListPrice.HasValue ? (decimal)createProductDTO.ListPrice : 0M,
-                Size = createProductDTO.Size,
-                Weight = createProductDTO.Weight.HasValue ? (decimal)createProductDTO.Weight : 0M,
-                ProductCategoryId = createProductDTO.ProductCategoryId,
-                ProductModelId = createProductDTO.ProductModelId,
-                SellStartDate = createProductDTO.SellStartDate,
-                SellEndDate = createProductDTO.SellEndDate,
-                DiscontinuedDate = createProductDTO.DiscontinuedDate,
-                ThumbnailPhotoFileName = createProductDTO.ThumbnailPhotoFileName,
-                ThumbNailPhoto = createProductDTO.ThumbnailPhoto != null
-            ? Convert.FromBase64String(createProductDTO.ThumbnailPhoto)
-            : null,
-                Rowguid = Guid.NewGuid(),
-                ModifiedDate = currentTimeInItaly,
-               
-            };
 
+                // Get the current time in italy (CET/CEST time zone)
+                TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
+                DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
+
+                /*If the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
+
+                // Map CreateProductDTO to Product entity
+                var product = new Product
+                {
+
+                    Name = createProductDTO.Name,
+                    ProductNumber = createProductDTO.ProductNumber,
+                    Color = createProductDTO.Color,
+                    StandardCost = createProductDTO.StandardCost.HasValue ? (decimal)createProductDTO.StandardCost : 0M,
+                    ListPrice = createProductDTO.ListPrice.HasValue ? (decimal)createProductDTO.ListPrice : 0M,
+                    Size = createProductDTO.Size,
+                    Weight = createProductDTO.Weight.HasValue ? (decimal)createProductDTO.Weight : 0M,
+                    ProductCategoryId = createProductDTO.ProductCategoryId,
+                    ProductModelId = createProductDTO.ProductModelId,
+                    SellStartDate = createProductDTO.SellStartDate,
+                    SellEndDate = createProductDTO.SellEndDate,
+                    DiscontinuedDate = createProductDTO.DiscontinuedDate,
+                    ThumbnailPhotoFileName = createProductDTO.ThumbnailPhotoFileName,
+                    ThumbNailPhoto = createProductDTO.ThumbnailPhoto != null
+                ? Convert.FromBase64String(createProductDTO.ThumbnailPhoto)
+                : null,
+                    Rowguid = Guid.NewGuid(),
+                    ModifiedDate = currentTimeInItaly,
+
+                };
+
+
+
+                //save the new product in sql database
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+
+                //if it's successful return a 200(ok)
+                return Ok(new { Message = "Product created successfully" });
+            }
+            catch(GenericException ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return Conflict(new { Message = ex.Message });
+            }
+            catch(Exception ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during product creation");
+            }
             
 
-            //save the new product in sql database
-            _context.Products.Add(product);
-            await _context.SaveChangesAsync();
-
-            //if it's successful return a 200(ok)
-            return Ok(new { Message = "Product created successfully" });
         }
 
 
@@ -471,20 +496,35 @@ namespace BikeVille.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
-            //Find the product
-            var product = await _context.Products.FindAsync(id);
-            //if the product doesn't exist throw an exception
-            if (product == null)
+            try
             {
-                throw new GenericException($"Prodotto con ID {id} non trovato.", 404);
+                //Find the product
+                var product = await _context.Products.FindAsync(id);
+                //if the product doesn't exist throw an exception
+                if (product == null)
+                {
+                    throw new GenericException($"Prodotto con ID {id} non trovato.", 409);
+                }
+
+                //remove the product
+                _context.Products.Remove(product);
+                //save the changes in the database
+                await _context.SaveChangesAsync();
+
+                return Ok(new { Message = "Product removed successfully" });
+            }
+            catch (GenericException ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return Conflict(new { Message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                await _errorHandlingService.LogErrorAsync(ex);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the product.");
             }
 
-            //remove the product
-            _context.Products.Remove(product);
-            //save the changes in the database
-            await _context.SaveChangesAsync();
-
-            return Ok(new { Message = "Product removed successfully" });
+           
         }
 
         private bool ProductExists(int id)
