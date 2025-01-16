@@ -35,6 +35,7 @@ namespace BikeVille.Services
                 // Se l'eccezione è una GenericException, usa il suo ErrorCode
                 int? errorCode = null;
                 string? errorLine = null;  // Variabile per il numero della riga
+                string? errorProcedure = null; // Variabile per il nome del metodo
 
                 if (exception is GenericException genEx)
                 {
@@ -72,12 +73,21 @@ namespace BikeVille.Services
                                 if (int.TryParse(lineNumberPart, out var lineNumber))
                                 {
                                     errorLine = lineNumber.ToString(); // Converte l'int in stringa
-                                    break;  // Esci appena trovato il numero di riga
+                                    //break;  // Esci appena trovato il numero di riga
                                 }
                             }
+                            // Ottieni il metodo dalla parte iniziale della riga di stack trace
+                            var methodInfo = line.Split('(')[0].Trim(); // Es. "at Namespace.Class.Method"
+                            if (methodInfo.Contains("at "))
+                            {
+                                errorProcedure = methodInfo.Substring(methodInfo.IndexOf("at ") + 3).Trim();
+                            }
+
+                            break; // Interrompi il ciclo una volta trovata una riga valida
                         }
                     }
                 }
+
 
 
 
@@ -87,7 +97,7 @@ namespace BikeVille.Services
                     UserName = Environment.UserName,
                     ErrorNumber = exception.HResult,
                     ErrorMessage = exception.Message,
-                    ErrorProcedure = exception.TargetSite?.Name,
+                    ErrorProcedure = errorProcedure, // Usa il valore analizzato dallo stack trace,
                     ErrorLine = !string.IsNullOrEmpty(errorLine) ? (int?)int.Parse(errorLine) : null,  // Salvo la riga di errore, se disponibile
                     ErrorSeverity = (int)severity,  // Salvo il valore numerico dell'enum
                     ErrorState = errorCode  // Usa il codice d'errore personalizzato se presente

@@ -33,6 +33,7 @@ namespace BikeVille.Controllers
 
         }
 
+
         // POST api/<LoginJwtController>
         [HttpPost]
         public async Task<IActionResult> Post([FromBody] Credentials credentials)
@@ -77,9 +78,11 @@ namespace BikeVille.Controllers
             }
             catch (GenericException genEx)
             {
+               
                 // Log specifico per GenericException
                 await _errorHandlingService.LogErrorAsync(genEx);
-                return StatusCode(500, new { error = genEx.Message, code = genEx.ErrorCode });
+                return StatusCode(500, new { error = genEx.Message, code = genEx.ErrorCode, number = genEx.HResult });
+
             }
             catch (Exception ex)
             {

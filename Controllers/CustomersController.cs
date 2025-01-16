@@ -18,6 +18,7 @@ using BikeVille.Exceptions;
 using BikeVille.Services;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 
 namespace BikeVille.Controllers
