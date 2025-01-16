@@ -14,6 +14,9 @@ using BikeVille.Models.DTO.filters;
 using BikeVille.Exceptions;
 using BikeVille.Services;
 using Microsoft.DotNet.Scaffolding.Shared.Messaging;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace BikeVille.Controllers
 {
@@ -329,12 +332,23 @@ namespace BikeVille.Controllers
 
         // POST: api/Products1
         [HttpPost]
+        [Authorize]//Controllo che il jwt sia valido
         public async Task<ActionResult<Product>> PostProduct(CreateProductDTO createProductDTO)
         {
+            if (User==null) {
+                return Unauthorized(new { Message = "Session is expired." });
+            }
+            // Verifica se il token è valido(altrimenti User sarebbe null) e controllo che il ruolo sia admin
+            var roleClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
+
+            if (roleClaim != "Admin")
+            {
+                return Unauthorized(new { Message = "You are not authorized to perform this action." });
+            }
+
             //verify if the data entered are valid
             if (!ModelState.IsValid)
                 return BadRequest();
-
             try
             {
                 //verify if the product already exists in the sql database
@@ -358,9 +372,6 @@ namespace BikeVille.Controllers
                     //if the product exists already
                     throw new GenericException("Product ProductNumber already exists in the system.", 409);
                 }
-
-                
-
                 // Get the current time in italy (CET/CEST time zone)
                 TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
                 DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
@@ -391,9 +402,6 @@ namespace BikeVille.Controllers
                     ModifiedDate = currentTimeInItaly,
 
                 };
-
-
-
                 //save the new product in sql database
                 _context.Products.Add(product);
                 await _context.SaveChangesAsync();

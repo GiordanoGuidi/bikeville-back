@@ -139,7 +139,7 @@ namespace BikeVille.Controllers
                     new Claim("Id",customer.CustomerId.ToString()),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
-                Expires = DateTime.Now.AddMinutes(jwtSettings.TokenExpirationMinutes),
+                Expires = DateTime.UtcNow.AddMinutes(1),
                 Issuer = jwtSettings.Issuer,
                 Audience = jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
