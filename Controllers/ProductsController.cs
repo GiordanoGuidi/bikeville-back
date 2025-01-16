@@ -514,6 +514,12 @@ namespace BikeVille.Controllers
                     throw new GenericException($"Prodotto con ID {id} non trovato.", 409);
                 }
 
+                // Trova i dettagli correlati nella tabella SalesOrderDetail
+                var relatedOrderDetails = _context.SalesOrderDetails.Where(od => od.ProductId == id);
+
+                // Rimuovi i record correlati
+                _context.SalesOrderDetails.RemoveRange(relatedOrderDetails);
+
                 //remove the product
                 _context.Products.Remove(product);
                 //save the changes in the database
