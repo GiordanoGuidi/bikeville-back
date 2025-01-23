@@ -36,7 +36,7 @@ namespace BikeVille.Controllers
 
         // POST api/<LoginJwtController>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Credentials credentials)
+        public async Task<ActionResult> Post([FromBody] Credentials credentials)
         {
             try
             {
@@ -142,7 +142,7 @@ namespace BikeVille.Controllers
                     new Claim("Id",customer.CustomerId.ToString()),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(1),
+                Expires = DateTime.UtcNow.AddMinutes(5),
                 Issuer = jwtSettings.Issuer,
                 Audience = jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),

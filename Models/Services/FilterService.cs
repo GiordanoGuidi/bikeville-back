@@ -71,7 +71,7 @@ namespace BikeVille.Models.Services
                 Size= size
             }).ToList();
 
-            //Creo e popolo e restituisco l'oggetto BikeFilters
+            //Creo e popolo e restituisco l'oggetto Filters
             return new Filters
             {
                 //Aggiunto i tipi di biciclette
