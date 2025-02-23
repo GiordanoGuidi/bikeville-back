@@ -53,7 +53,7 @@ namespace BikeVille.Controllers
         public async Task<ActionResult<bool>> GetCustomerByMail(string email)
         {
             //controlla l'esistenza della mail nel database
-            var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+            var collection = _mongoDatabase.GetCollection<UserCredentials>("Users");
             var existingUser = await collection.Find(u => u.EmailAddress == email).FirstOrDefaultAsync();
 
             if (existingUser == null)
@@ -67,7 +67,7 @@ namespace BikeVille.Controllers
         [HttpGet("/getMail/{id}")]
         public async Task<IActionResult> GetCustomerEmailById(int id)
         {
-            var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+            var collection = _mongoDatabase.GetCollection<UserCredentials>("Users");
             var user = await collection.Find(u => u.CustomerID == id).FirstOrDefaultAsync();
 
             if (user == null)
@@ -154,7 +154,7 @@ namespace BikeVille.Controllers
                 _context.Entry(existingCustomer).State = EntityState.Modified;
 
                 // Aggiorna EmailAddress su MongoDB
-                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("Users");
                 var userCredentials = await collection.Find(u => u.CustomerID == id).FirstOrDefaultAsync();
 
                 if (userCredentials != null)
@@ -217,7 +217,7 @@ namespace BikeVille.Controllers
                 }
 
                 // Verifica se l'email esiste già in MongoDB
-                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("Users");
                 var existingUserInMongo = await collection.Find(u => u.EmailAddress == createCustomerDto.EmailAddress).FirstOrDefaultAsync();
 
                 if (existingUserInMongo != null)
@@ -303,11 +303,11 @@ namespace BikeVille.Controllers
                 await _context.SaveChangesAsync();
 
                 //Remove the customer from the MongoDB
-                var collection = _mongoDatabase.GetCollection<UserCredentials>("BikeVille");
+                var collection = _mongoDatabase.GetCollection<UserCredentials>("Users");
                 //Find the customer and delete it
                 var filter = Builders<UserCredentials>.Filter.Eq("CustomerID", id);
                 var result = await collection.DeleteOneAsync(filter);
-                
+
 
                 //If it's successful return a 200
                 return Ok(new { Message = "Customer removed successfully" });
@@ -317,12 +317,12 @@ namespace BikeVille.Controllers
                 await _errorHandlingService.LogErrorAsync(ex);
                 return Conflict(new { Message = ex.Message });
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 await _errorHandlingService.LogErrorAsync(ex);
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while deleting the customer.");
             }
-            
+
         }
 
         private bool CustomerExists(int id)
