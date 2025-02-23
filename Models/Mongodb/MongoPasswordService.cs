@@ -8,7 +8,7 @@ namespace BikeVille.Models.Mongodb
 
         public MongoPasswordService(IMongoDatabase database)
         {
-            _passwordCollection = database.GetCollection<UserCredentials>("BikeVille");
+            _passwordCollection = database.GetCollection<UserCredentials>("Users");
         }
 
         public UserCredentials GetUserByEmail(string emailAddress)
