@@ -78,7 +78,7 @@ namespace BikeVille.Controllers
             }
             catch (GenericException genEx)
             {
-               
+
                 // Log specifico per GenericException
                 await _errorHandlingService.LogErrorAsync(genEx);
                 return StatusCode(500, new { error = genEx.Message, code = genEx.ErrorCode, number = genEx.HResult });
@@ -137,12 +137,12 @@ namespace BikeVille.Controllers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim (ClaimTypes.Email, user.EmailAddress),
-                    new Claim("FirstName", customer.FirstName),   
+                    new Claim("FirstName", customer.FirstName),
                     new Claim("LastName", customer.LastName),
                     new Claim("Id",customer.CustomerId.ToString()),
                     new Claim(ClaimTypes.Role, user.Role)
                 }),
-                Expires = DateTime.UtcNow.AddMinutes(5),
+                Expires = DateTime.UtcNow.AddMinutes(60),
                 Issuer = jwtSettings.Issuer,
                 Audience = jwtSettings.Audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key),
@@ -153,7 +153,7 @@ namespace BikeVille.Controllers
             string tokenString = tokenHandler.WriteToken(token);
             Console.WriteLine($"Generated Token: {tokenString}");
             // Restituisco  il token
-            return Ok( tokenString );
+            return Ok(tokenString);
         }
 
         [HttpPost("admin/{email}")]
