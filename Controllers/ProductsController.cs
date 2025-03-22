@@ -260,7 +260,6 @@ namespace BikeVille.Controllers
             return Ok(filteredProducts);
         }
 
-
         // Funzione per recuperare le Parent-categories
         [HttpGet("parent-categories")]
         public async Task<ActionResult<IEnumerable<ProductCategory>>> GetTopCategories()
@@ -376,7 +375,8 @@ namespace BikeVille.Controllers
                 TimeZoneInfo italyTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Europe/Rome");
                 DateTime currentTimeInItaly = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, italyTimeZone);
 
-                /*If the product doesn't exist, a new Product object is created by mapping the fields from CreateProductDTO*/
+                /*If the product doesn't exist, a new Product object
+                 is created by mapping the fields from CreateProductDTO*/
 
                 // Map CreateProductDTO to Product entity
                 var product = new Product
@@ -422,7 +422,6 @@ namespace BikeVille.Controllers
             
 
         }
-
 
         // PUT: api/Products1/{id}
           [HttpPut("{id}")]
@@ -499,7 +498,6 @@ namespace BikeVille.Controllers
             return NoContent();
         }
 
-        
         // DELETE: api/Products1/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteProduct(int id)

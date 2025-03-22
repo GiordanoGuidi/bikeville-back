@@ -12,6 +12,7 @@ using MongoDB.Driver;
 using BikeVille.Models.Mongodb;
 using BikeVille.Models.Services;
 using BikeVille.Services;
+using Microsoft.OpenApi.Models;
 
 
 namespace BikeVille
@@ -22,11 +23,42 @@ namespace BikeVille
         {
            
             var builder = WebApplication.CreateBuilder(args);
+            builder.WebHost.UseUrls("http://localhost:5010", "https://localhost:7257");
+
 
             // Add services to the container.
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
-            builder.Services.AddSwaggerGen();
+            builder.Services.AddSwaggerGen(c=>
+            {
+                /*Questo codice Dice a Swagger di usare JWT per autenticarsi.
+                 Aggiunge un campo "Authorization" nella UI
+                 di Swagger dove puoi inserire il token.*/
+                c.AddSecurityDefinition("Bearer",new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+                {
+                    Name = "Authorization",
+                    Type= SecuritySchemeType.Http,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT",
+                    In = ParameterLocation.Header,
+                    Description = "Inserisci il token JWT nel formato: Bearer {token}"
+                });
+
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type=ReferenceType.SecurityScheme,
+                                Id= "Bearer"
+                            }
+                        },
+                        new string[]{}
+                    }
+                });
+            });
             builder.Services.AddScoped<FilterService>();
 
             //Aggiungo configurazione al database Sql
@@ -115,16 +147,14 @@ namespace BikeVille
 
             app.UseCors("CorsPolicy");
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            
+            
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
 
             app.MapControllers();

@@ -45,6 +45,7 @@ public partial class AdventureWorksLt2019Context : DbContext
 
     public virtual DbSet<VProductModelCatalogDescription> VProductModelCatalogDescriptions { get; set; }
 
+    public virtual DbSet<UserCart> UserCart {get;set;}
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 #warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see https://go.microsoft.com/fwlink/?LinkId=723263.
         => optionsBuilder.UseSqlServer("Server=localhost,1433;Database=AdventureWorksLT2019;User Id=sa;Password=mastroGeppetto45!;TrustServerCertificate=True");
@@ -54,7 +55,7 @@ public partial class AdventureWorksLt2019Context : DbContext
     {
         modelBuilder.UseCollation("SQL_Latin1_General_CP1_CI_AS");
 
-        modelBuilder.Entity<Address>(entity =>     //  jsjjsjsj
+        modelBuilder.Entity<Address>(entity =>  
         {
             entity.HasKey(e => e.AddressId).HasName("PK_Address_AddressID");
 
@@ -634,6 +635,16 @@ public partial class AdventureWorksLt2019Context : DbContext
             entity.Property(e => e.WarrantyPeriod).HasMaxLength(256);
             entity.Property(e => e.Wheel).HasMaxLength(256);
         });
+
+        modelBuilder.Entity<UserCart>()
+            .HasOne(entity => entity.Customer)
+            .WithMany()
+            .HasForeignKey(entity => entity.CustomerId);
+
+        modelBuilder.Entity<UserCart>()
+            .HasOne(entity => entity.Product)
+            .WithMany()
+            .HasForeignKey(entity => entity.ProductId);
 
         OnModelCreatingPartial(modelBuilder);
     }

@@ -10,7 +10,6 @@ using Microsoft.VisualStudio.Web.CodeGenerators.Mvc.Templates.BlazorIdentity.Pag
 using BikeVille.Services;
 using BikeVille.Exceptions;
 
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace BikeVille.Controllers
 {
@@ -23,7 +22,6 @@ namespace BikeVille.Controllers
         private readonly ErrorHandlingService _errorHandlingService;
         private readonly AdventureWorksLt2019Context _context;
 
-
         public LoginJwtController(JwtSettings jwtSettings, MongoPasswordService passwordService, ErrorHandlingService errorHandlingService, AdventureWorksLt2019Context context)
         {
             this.jwtSettings = jwtSettings;
@@ -32,7 +30,6 @@ namespace BikeVille.Controllers
             _context = context;
 
         }
-
 
         // POST api/<LoginJwtController>
         [HttpPost]
@@ -92,9 +89,6 @@ namespace BikeVille.Controllers
             }
         }
 
-
-
-
         /// <summary>
         /// method that checks that the entered password is equal to the passwordhash
         /// </summary>
@@ -115,7 +109,6 @@ namespace BikeVille.Controllers
                 return computedHash.SequenceEqual(Convert.FromBase64String(storedHash));
             }
         }
-
 
         //Metodo per creare un JWT
         private async Task<ActionResult> GenerateJwtToken(UserCredentials user)

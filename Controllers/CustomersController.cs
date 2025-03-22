@@ -77,6 +77,7 @@ namespace BikeVille.Controllers
 
             return Ok(user.EmailAddress);
         }
+        
         // GET: api/Customers/5
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
@@ -193,7 +194,6 @@ namespace BikeVille.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred during customer update.");
             }
         }
-
 
         // POST: api/Customers
         [HttpPost]
